@@ -18,4 +18,6 @@
       http/start))
 
 (comment
+  "Run the below and navigate to localhost:8888 or direct a GraphQL client
+  to http://localhost:8888/graphql using the GET method."
   (start-server))
