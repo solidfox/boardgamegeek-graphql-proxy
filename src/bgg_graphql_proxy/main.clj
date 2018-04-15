@@ -16,3 +16,6 @@
   (-> (bgg-schema)
       pedestal-server
       http/start))
+
+(comment
+  (start-server))
