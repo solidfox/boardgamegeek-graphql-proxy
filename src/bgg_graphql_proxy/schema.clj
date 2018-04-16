@@ -11,6 +11,10 @@
   ;; TODO: Error handling, including not found
   (client/get-board-game (:cache context) (:id args)))
 
+(defn ^:private resolve-person
+  [context args _value]
+  (client/get-person (:id args)))
+
 (defn ^:private resolve-search
   [context args _value]
   (client/search (:cache context) (:term args)))
@@ -34,7 +38,7 @@
   (-> (io/resource "bgg-schema.edn")
       slurp
       edn/read-string
-      (attach-resolvers {:resolve-game resolve-board-game
+      (attach-resolvers {:resolve-person resolve-board-game
                          :resolve-search resolve-search
                          :resolve-game-publishers resolve-game-publishers
                          :resolve-game-designers resolve-game-designers})
