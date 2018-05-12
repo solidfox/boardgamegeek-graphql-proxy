@@ -2,7 +2,7 @@
   (:require
     [io.pedestal.http :as http]
     [com.walmartlabs.lacinia :refer [execute]]
-    [bgg-graphql-proxy.schema :refer [bgg-schema]]
+    [bgg-graphql-proxy.schema :refer [inventist-schema]]
     [bgg-graphql-proxy.server :refer [pedestal-server]]))
 
 (defn stop-server
@@ -13,7 +13,7 @@
 (defn start-server
   "Creates and starts Pedestal server, ready to handle Graphql (and Graphiql) requests."
   []
-  (-> (bgg-schema)
+  (-> (inventist-schema)
       pedestal-server
       http/start))
 

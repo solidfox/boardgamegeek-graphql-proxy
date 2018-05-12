@@ -6,7 +6,7 @@
     [com.walmartlabs.lacinia.util :refer [attach-resolvers]]
     [bgg-graphql-proxy.client :as client]))
 
-(defn ^:private resolve-board-game
+(defn ^:private resolve-people
   [context args _value]
   ;; TODO: Error handling, including not found
   (client/get-board-game (:cache context) (:id args)))
@@ -33,13 +33,13 @@
   [context args board-game]
   (client/designers (:cache context) (extract-ids board-game :designer-ids args)))
 
-(defn bgg-schema
+(defn inventist-schema
   []
-  (-> (io/resource "bgg-schema.edn")
+  (-> (io/resource "inventist-schema.edn")
       slurp
       edn/read-string
-      (attach-resolvers {:resolve-person resolve-board-game
-                         :resolve-search resolve-search
+      (attach-resolvers {:resolve-people          resolve-people
+                         :resolve-search          resolve-search
                          :resolve-game-publishers resolve-game-publishers
-                         :resolve-game-designers resolve-game-designers})
+                         :resolve-game-designers  resolve-game-designers})
       schema/compile))
