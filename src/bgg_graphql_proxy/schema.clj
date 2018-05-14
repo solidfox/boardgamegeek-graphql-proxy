@@ -9,7 +9,7 @@
 (defn ^:private resolve-people
   [context args _value]
   ;; TODO: Error handling, including not found
-  (client/get-board-game (:cache context) (:id args)))
+  (client/get-people (:cache context) args))
 
 (defn ^:private resolve-person
   [context args _value]

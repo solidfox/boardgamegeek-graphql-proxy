@@ -57,7 +57,14 @@
               :InventoryItemEvent {:description "Something that happened to an inventory item. Such as being reassigned, repaired or decommissioned."
                                    :person      {:type :Person}
                                    :date-time   {:type Int}
-                                   :comment     {:type String}}}
+                                   :comment     {:type String}}
+
+              :Document           {:description "A file."
+                                   :id          {:type ID}
+                                   :file-type   {:type String}
+                                   :name        {:type String}
+                                   :comment     {:type String}
+                                   :url         {:type String}}}
 
 
 

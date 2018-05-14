@@ -16,8 +16,8 @@
                             (name tag)
                             (-> element :tag name))
                     {:expected-tag tag
-                     :actual-tag (:tag element)
-                     :element element})))
+                     :actual-tag   (:tag element)
+                     :element      element})))
   element)
 
 (defn ^:private parse-int [s] (Integer/parseInt s))
@@ -26,17 +26,17 @@
 
 (def ^:private boardgame-content-renames
   {:yearpublished [:publish-year parse-int]
-   :minplayers [:min-players parse-int]
-   :maxplayers [:max-players parse-int]
-   :playingtime [:playing-time parse-int]
-   :age [:min-player-age parse-int]
-   :description [:description str]
-   :thumbnail [:thumbnail prefix-with-https]
-   :image [:image prefix-with-https]})
+   :minplayers    [:min-players parse-int]
+   :maxplayers    [:max-players parse-int]
+   :playingtime   [:playing-time parse-int]
+   :age           [:min-player-age parse-int]
+   :description   [:description str]
+   :thumbnail     [:thumbnail prefix-with-https]
+   :image         [:image prefix-with-https]})
 
 (defmulti process-bg-content
-  (fn [_bg element]
-    (:tag element)))
+          (fn [_bg element]
+            (:tag element)))
 
 (defmethod process-bg-content :default
   [bg element]
@@ -65,9 +65,9 @@
 (defn ^:private xml->board-game
   [element]
   (reduce process-bg-content
-          {:id (-> element :attrs :objectid)
+          {:id            (-> element :attrs :objectid)
            :publisher-ids []
-           :designer-ids []}
+           :designer-ids  []}
           (:content element)))
 
 (defn ^:private get-xml
@@ -75,15 +75,16 @@
   (log/info (str "BGG Query: " url (when query-params
                                      (str " " (pr-str query-params)))))
   (->> (client/get url
-                   {:accept "text/xml"
-                    :query-params query-params
+                   {:accept           "text/xml"
+                    :query-params     query-params
                     :throw-exceptions false})
        :body
        StringReader.
        xml/parse))
 
-(defn get-board-game
-  [cache id]
+(defn get-people
+  [cache {ids   :ids
+          group :group}]
   (or (cache/resolve-by-id cache :games id)
       (let [game (->> (get-xml (str base-url "/boardgame/" id) nil)
                       (expect-tag :boardgames)
@@ -93,6 +94,9 @@
         (cache/fill cache :games [game])
         game)))
 
+
+
+
 (defn search
   "Performs a search of matching games by name."
   [cache text]
@@ -101,11 +105,11 @@
                       :content
                       (map (comp :objectid :attrs)))
         [cached more-ids] (cache/resolve-by-ids cache :games game-ids)
-        games (when more-ids
-                (->> (get-xml (str base-url "/boardgame/" (str/join "," more-ids)) nil)
-                     (expect-tag :boardgames)
-                     :content
-                     (map xml->board-game)))]
+        games    (when more-ids
+                   (->> (get-xml (str base-url "/boardgame/" (str/join "," more-ids)) nil)
+                        (expect-tag :boardgames)
+                        :content
+                        (map xml->board-game)))]
     (cache/fill cache :games games)
     (concat cached games)))
 

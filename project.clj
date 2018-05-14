@@ -7,6 +7,8 @@
                  [org.clojure/data.json "0.2.6"]
                  [org.clojure/data.xml "0.0.8"]
                  [io.pedestal/pedestal.service "0.5.3"]
-                 [io.pedestal/pedestal.jetty "0.5.3"]]
+                 [io.pedestal/pedestal.jetty "0.5.3"]
+                 [com.datomic/datomic-free "0.9.5697"]
+                 [org.clojure/data.csv "0.1.4"]]
   :codox {:source-uri "https://github.com/hlship/boardgamegeek-graphql-proxy/blob/master/{filepath}#L{line}"
           :metadata {:doc/format :markdown}})
