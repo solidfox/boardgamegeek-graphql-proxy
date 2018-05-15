@@ -9,6 +9,9 @@
                  [io.pedestal/pedestal.service "0.5.3"]
                  [io.pedestal/pedestal.jetty "0.5.3"]
                  [com.datomic/datomic-free "0.9.5697"]
-                 [org.clojure/data.csv "0.1.4"]]
+                 [org.clojure/data.csv "0.1.4"]
+                 [datomic-schema "1.3.0"]
+                 [ysera "1.2.0"]]
+
   :codox {:source-uri "https://github.com/hlship/boardgamegeek-graphql-proxy/blob/master/{filepath}#L{line}"
           :metadata {:doc/format :markdown}})

@@ -18,8 +18,8 @@
                                    :fields      {:id         {:type (non-null ID)}
                                                  :kind       {:type        String
                                                               :description "E.g. teacher or student."}
-                                                 :group      {:type String}
-                                                 :image      {:type String}
+                                                 :groups     {:type (list :Group)}
+                                                 :photo-url  {:type String}
                                                  :first-name {:type String}
                                                  :last-name  {:type String}
                                                  :email      {:type String}
@@ -29,6 +29,14 @@
                                                  :address    {:type String}
                                                  :inventory  {:type    (list :InventoryItem)
                                                               :resolve :resolve-computers}}}
+
+              :Group              {:description "A group of persons."
+                                   :implements  [:Entity]
+                                   :fields      {:id           {:type (non-null ID)}
+                                                 :name         {:type String}
+                                                 :description  {:type String}
+                                                 :school-class {:type Bool}
+                                                 :active       {:type Bool}}}
 
               :Computer           {:description "Details about a computer."
                                    :implements  [:InventoryItem]

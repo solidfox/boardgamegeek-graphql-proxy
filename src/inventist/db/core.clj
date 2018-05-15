@@ -25,6 +25,7 @@
 
 (comment
   "Reload db"
-  (let [uri docker-local-uri]))
+  (let [uri docker-local-uri])
+  (seq (d/entity (d/db conn) 17592186045950)))
 
 
