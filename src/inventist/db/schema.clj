@@ -1,6 +1,5 @@
 (ns inventist.db.schema
   (:require [datomic.api :as d]
-            [inventist.db.core :as core]
             [datomic-schema.schema :as ds]))
 
 (def inventory-item-schema [{:db/ident       :inventory-item/name
@@ -32,14 +31,9 @@
                              :db/valueType   :db.type/string
                              :db/cardinality :db.cardinality/one}
 
-                            {:db/ident       :inventory-item/history
-                             :db/valueType   :db.type/ref
-                             :db/cardinality :db.cardinality/many}
-
-                            {:db/ident       :inventory-item/purchase-details
+                            {:db/ident       :inventory-item/users
                              :db/valueType   :db.type/ref
                              :db/cardinality :db.cardinality/one}
-
 
                             {:db/ident       :inventory-item/color
                              :db/valueType   :db.type/string
@@ -82,6 +76,10 @@
                     {:db/ident       :person/groups
                      :db/valueType   :db.type/ref
                      :db/cardinality :db.cardinality/many}
+
+                    {:db/ident       :person/active
+                     :db/valueType   :db.type/boolean
+                     :db/cardinality :db.cardinality/one}
 
                     {:db/ident       :person/photo-url
                      :db/valueType   :db.type/string
@@ -131,11 +129,6 @@
                            person-schema
                            people-group-schema
                            document-schema))
-
-(defn update-schema! [conn schema]
-  (d/transact conn schema))
-
-(update-schema! core/conn entire-schema)
 
 (comment
   (d/q '[:find ?id ?name

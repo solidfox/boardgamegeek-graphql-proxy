@@ -1,31 +1,27 @@
 (ns inventist.db.core
-  (:require [datomic.api :as d]))
+  (:require [datomic.api :as d]
+            [inventist.db.schema :as schema]))
 
 (def docker-local-uri
   "datomic:free://localhost:4334/inventist")
 (def in-memory-uri
   "datomic:mem://inventist")
-(def uri
-  docker-local-uri)
+(def test-uri
+  "datomic:mem://test")
 
-(d/delete-database uri)
+(defn clear-database! [uri]
 
-(d/create-database uri)
+  (d/delete-database uri)
 
-(def conn (d/connect uri))
+  (d/create-database uri))
 
-;(def cfg {:server-type :peer-server
-;          :access-key ""
-;          :secret ""
-;          :endpoint "localhost:4334"})
-;
-;(def client (d/client cfg))
-;
-;(def conn (d/connect client {:db-name "inventist"}))
+(defn create-fresh-test-database! []
+  (clear-database! [test-uri])
+  (d/db (d/connect test-uri)))
 
 (comment
   "Reload db"
-  (let [uri docker-local-uri])
+  (fresh-database in-memory-uri)
   (seq (d/entity (d/db conn) 17592186045950)))
 
 

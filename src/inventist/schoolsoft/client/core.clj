@@ -1,32 +1,17 @@
-(ns inventist.schoolsoft.client.core)
-
-(ns inventist.cache.core
-  (:require [clojure.data.csv :as csv]
-            [clojure.java.io :as io]
+(ns inventist.schoolsoft.client.core
+  (:require [clojure.java.io :as io]
             [datomic.api :as d]
             [inventist.db.core :as db]
-            [ysera.test :refer [is-not]]))
-
-(defn csv-data->maps [csv-data]
-  (map zipmap
-       (->> (first csv-data)                                ;; First row is the header
-            (map keyword)                                   ;; Drop if you want string keys instead
-            repeat)
-       (rest csv-data)))
-
-(defn read-tsv [path]
-  (with-open [reader (io/reader path)]
-    (doall
-      (csv-data->maps (csv/read-csv reader
-                                    :separator \tab)))))
+            [ysera.test :refer [is-not]]
+            [inventist.util.core :as util]))
 
 (defn schoolsoft-groups->db-people-groups [schoolsoft-groups]
   (->> schoolsoft-groups
        (map (fn [group] {:group/schoolsoft-id (:id group)
                          :group/name          (:name group)
                          :group/description   (:description group)
-                         :group/school-class  (= 1 (:classtype group))
-                         :group/active        (= 1 (:active group))}))))
+                         :group/school-class  (= "1" (:classtype group))
+                         :group/active        (= "1" (:active group))}))))
 
 (defn schoolsoft-students->db-persons [schoolsoft-students]
   (->> schoolsoft-students
@@ -35,6 +20,7 @@
                            :person/last-name     (:lname student)
                            :person/occupation    :student
                            :person/groups        [{:group/schoolsoft-id (:classid student)}]
+                           :person/active        (= "1" (:active student))
                            :person/photo-url     (:picture student)
                            :person/email         (remove nil? [(when (not-empty (:email student))
                                                                  (:email student))
@@ -59,9 +45,10 @@
                                               (str (:username staff) "@gripsholmsskolan.se"))])
                     email-map (when (not-empty email)
                                 {:person/email email})]
-                (merge {:person/schoolsoft-id (:id staff)
+                (merge {:person/schoolsoft-id (str "s" (:id staff))
                         :person/first-name    (:fname staff)
                         :person/last-name     (:lname staff)
+                        :person/active        (= "1" (:active staff))
                         :person/occupation    :staff
                         :person/phone         (:mobile staff)
                         :person/address       (:address1 staff)}
@@ -69,22 +56,17 @@
                        (when (not-empty (:username staff))
                          {:person/username (:username staff)})))))))
 
-(comment
-  (do
-    (->> (read-tsv (-> "confidential/people/groups.tsv"
-                       io/resource
-                       io/file))
-         schoolsoft-groups->db-people-groups
-         (d/transact db/conn))
-    (->> (read-tsv (-> "confidential/people/students.tsv"
-                       io/resource
-                       io/file))
-         schoolsoft-students->db-persons
-         (d/transact db/conn))
-    (->> (read-tsv (-> "confidential/people/staff.tsv"
-                       io/resource
-                       io/file))
-         schoolsoft-staff->db-persons
-         (d/transact db/conn))))
-
-
+(defn create-all-data-transaction []
+  (concat
+    (->> (util/read-tsv (-> "confidential/people/groups.tsv"
+                            io/resource
+                            io/file))
+         schoolsoft-groups->db-people-groups)
+    (->> (util/read-tsv (-> "confidential/people/students.tsv"
+                            io/resource
+                            io/file))
+         schoolsoft-students->db-persons)
+    (->> (util/read-tsv (-> "confidential/people/staff.tsv"
+                            io/resource
+                            io/file))
+         schoolsoft-staff->db-persons)))
