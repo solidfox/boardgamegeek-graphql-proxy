@@ -49,15 +49,16 @@
                                                  :model_identifier {:type String}
                                                  :color            {:type String}
                                                  :serial_number    {:type String}
-                                                 :user             {:type    :Person
+                                                 :users            {:type    :Person
                                                                     :resolve :resolve-person}
                                                  :image_url        {:type String}
                                                  :history          {:type    (list :InventoryHistoryItem)
-                                                                    :resolve :resolve-inventory-history-item}
+                                                                    :resolve :resolve-inventory-history}
                                                  :purchase_details {:type :PurchaseDetails}}}
 
               :Reallocation       {:description "Describes a reallocation of an inventory item."
-                                   :fields      {:new_user {:type    :Person
+                                   :fields      {:instant  {:type String}
+                                                 :new_user {:type    :Person
                                                             :resolve :resolve-person}
                                                  :comment  {:type String}}}
 
@@ -89,6 +90,6 @@
                           :resolve     :query-computers}
               :people    {:type        (list :Person)
                           :description "Retrieve a filtered list of people."
-                          :args        {:ids   {:type (list ID)}
+                          :args        {:ids    {:type (list ID)}
                                         :groups {:type (list String)}}
                           :resolve     :query-people}}}

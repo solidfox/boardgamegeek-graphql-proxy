@@ -21,7 +21,7 @@
 (defn ^:private resolve-person
   [context args parent]
   (let [person-id (or (get-in parent [:users ":db/id"])
-                      (get-in parent [:new-user ":db/id"]))]
+                      (get-in parent [:new_user]))]
     (db/get-person (d/db (:db-connection context)) {:person-db-id person-id})))
 
 (defn ^:private resolve-groups
@@ -34,6 +34,11 @@
   [context args parent]
   (db/get-inventory-of-person (d/db (:db-connection context))
                               {:person-db-id (:id parent)}))
+
+(defn ^:private resolve-inventory-history
+  [context args parent]
+  (db/get-inventory-history-of-item (d/db (:db-connection context))
+                                    {:inventory-item-db-id (:id parent)}))
 
 (defn ^:private resolve-search
   [context args _value]
@@ -58,14 +63,14 @@
   (-> (io/resource "inventist-schema.edn")
       slurp
       edn/read-string
-      (attach-resolvers {:resolve-person                 resolve-person
-                         :resolve-groups                 resolve-groups
-                         :resolve-documents              identity
-                         :resolve-inventory-history-item identity
-                         :query-people                   query-people
-                         :query-computers                query-computers
-                         :resolve-computers              resolve-computers
-                         :resolve-search                 resolve-search
-                         :resolve-game-publishers        resolve-game-publishers
-                         :resolve-game-designers         resolve-game-designers})
+      (attach-resolvers {:resolve-person            resolve-person
+                         :resolve-groups            resolve-groups
+                         :resolve-documents         identity
+                         :resolve-inventory-history resolve-inventory-history
+                         :query-people              query-people
+                         :query-computers           query-computers
+                         :resolve-computers         resolve-computers
+                         :resolve-search            resolve-search
+                         :resolve-game-publishers   resolve-game-publishers
+                         :resolve-game-designers    resolve-game-designers})
       schema/compile))

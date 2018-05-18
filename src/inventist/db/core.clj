@@ -3,8 +3,11 @@
             [inventist.db.schema :as schema]
             [ysera.test :refer [is=]]
             [clojure.string :as str]
+            [clj-time.format :as time]
+            [clj-time.coerce :refer [from-date]]
             [inventist.schoolsoft.client.core :as schoolsoft]
-            [inventist.datorbasen.client.core :as datorbasen]))
+            [inventist.datorbasen.client.core :as datorbasen]
+            [com.walmartlabs.lacinia.schema :refer [tag-with-type]]))
 
 (def docker-local-uri
   "datomic:free://localhost:4334/inventist")
@@ -135,6 +138,19 @@
        (map pulled-result->graphql-result)
        (map (fn [result] (assoc result :class "laptop")))))
 
+(defn get-inventory-history-of-item
+  [db {id :inventory-item-db-id}]
+  (->> (d/q '[:find ?user ?instant
+              :in $ ?inventory-item-eid
+              :where
+              [?inventory-item-eid :inventory-item/users ?user ?tx]
+              [?tx :db/txInstant ?instant]]
+            (d/history db)
+            id)
+       (map (fn [[new-user instant]]
+              (tag-with-type {:new_user new-user
+                              :instant  (time/unparse (time/formatters :date-time-no-ms) (from-date instant))}
+                             :Reallocation)))))
 
 (defn get-group
   [db {group-eid :group-db-id}]
@@ -152,29 +168,6 @@
        (into {})))
 
 (comment
-  (-> {:födelsedag                           "0000-00-00",
-       :klass                                "7 Tigrar",
-       :smart-status                         "SMART Status: Verified",
-       :anmärkning                           "",
-       :förnamn                              "Vendela",
-       :fyra-sista-siffrorna-i-personnummret "XXXX",
-       :ram                                  "8192",
-       :serienummer                          "FVHTPSRXJ1WK",
-       :mac-address                          "d4:61:9d:1b:09:d2",
-       :ssd                                  "TRUE",
-       :status                               "",
-       :namn-på-hårddisk                     "Macintosh HD",
-       :os-x-version                         "10.12.6",
-       :efternamn                            "Wohrne",
-       :modellnamn                           "MacBook Air (13-inch, 2017)",
-       :ledig-hårddisk                       "83",
-       :kan-lösenord                         "TRUE",
-       :timestamp                            "2018-02-16T22:04:22",
-       :diagnostik                           "",
-       :modell                               "MacBookAir7,2",
-       :hårddisk                             "120"}
-      (datorbasen/datorbasen-registration->inventory-item (d/db db-connection)))
-
   (d/q '[:find ?e ?name ?lname ?computer                    ;(pull ?ce ["*"])
          :where
          [?e :person/first-name ?name]
@@ -195,16 +188,21 @@
          (def group-eid (get (first groups) ":db/id"))
          (def person-eid id)
          person)))
-  (d/q '[:find (pull ?e ["*"])
-         :in $ ?person-eid
-         :where [?e :inventory-item/users ?person-eid]]
-       (d/db (d/connect in-memory-uri))
-       17592186045955)
+  (d/q '[:find ?a ?v ?tx ?t
+         :in $ ?item-eid
+         :where
+         [?item-eid _ _ ?tx]
+         [?item-eid ?a ?v ?tx]
+         [?tx :db/txInstant ?t]]
+       (d/history (d/db (d/connect in-memory-uri)))
+       17592186046470)
 
   (query-inventory (d/db (d/connect in-memory-uri)) {:search_terms ["2012"]})
   (get-group (d/db (d/connect in-memory-uri)) {:group-db-id group-eid})
   (get-person (d/db (d/connect in-memory-uri)) {:person-db-id person-eid})
-  (get-inventory-of-person (d/db (d/connect in-memory-uri)) {:person-db-id person-eid}))
+  (get-inventory-of-person (d/db (d/connect in-memory-uri)) {:person-db-id person-eid})
+  (get-inventory-history-of-item (d/db (d/connect in-memory-uri)) {:inventory-item-db-id 17592186046563}))
+
 
 
 
