@@ -6,10 +6,6 @@
                              :db/valueType   :db.type/string
                              :db/cardinality :db.cardinality/one}
 
-                            {:db/ident       :inventory-item/release-date
-                             :db/valueType   :db.type/long
-                             :db/cardinality :db.cardinality/one}
-
                             {:db/ident       :inventory-item/brand
                              :db/valueType   :db.type/string
                              :db/cardinality :db.cardinality/one}

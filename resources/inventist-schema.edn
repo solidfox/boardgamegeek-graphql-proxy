@@ -1,8 +1,10 @@
-{:interfaces {:Entity        {:description "A Standard entity with id."
-                              :fields      {:id {:type (non-null ID)}}}}
+{:interfaces {:Entity {:description "A Standard entity with id."
+                       :fields      {:id {:type (non-null ID)}}}}
 
- :unions {:InventoryHistoryItem
-          {:members [:Reallocation :Comment :Issue]}}
+
+ :unions     {:InventoryHistoryItem
+              {:members [:Reallocation]}}
+
 
  :objects    {:Company            {:description "A company that may publish a Board Game."
                                    :implements  [:Entity]
@@ -24,7 +26,7 @@
                                                  :username   {:type String}
                                                  :phone      {:type String}
                                                  :address    {:type String}
-                                                 :inventory  {:type    (list :InventoryItem)
+                                                 :inventory  {:type    (list :Computer)
                                                               :resolve :resolve-computers}}}
 
               :Group              {:description "A group of persons."
@@ -37,6 +39,9 @@
 
               :Computer           {:description "Details about a computer."
                                    :fields      {:id               {:type (non-null ID)}
+                                                 :class            {:type String
+                                                                    :description
+                                                                          "E. g. laptop / smartphone / tablet etc..."}
                                                  :name             {:type String}
                                                  :release_date     {:type Int}
                                                  :brand            {:type String}
@@ -44,10 +49,17 @@
                                                  :model_identifier {:type String}
                                                  :color            {:type String}
                                                  :serial_number    {:type String}
+                                                 :user             {:type    :Person
+                                                                    :resolve :resolve-person}
                                                  :image_url        {:type String}
                                                  :history          {:type    (list :InventoryHistoryItem)
                                                                     :resolve :resolve-inventory-history-item}
                                                  :purchase_details {:type :PurchaseDetails}}}
+
+              :Reallocation       {:description "Describes a reallocation of an inventory item."
+                                   :fields      {:new_user {:type    :Person
+                                                            :resolve :resolve-person}
+                                                 :comment  {:type String}}}
 
               :PurchaseDetails    {:description "Details about how a computer was acquired."
                                    :fields      {:purchase_id       {:type (non-null ID)}
@@ -71,16 +83,12 @@
                                                  :url       {:type String}}}}
 
 
-
-
-
-
  :queries    {:computers {:type        (list :Computer)
                           :description "Retrieve a filtered list of computers."
-                          :args        {:model_name {:type String}}
-                          :resolve     :resolve-computers}
+                          :args        {:search_terms {:type (list String)}}
+                          :resolve     :query-computers}
               :people    {:type        (list :Person)
                           :description "Retrieve a filtered list of people."
                           :args        {:ids   {:type (list ID)}
-                                        :group {:type String}}
-                          :resolve     :resolve-people}}}
+                                        :groups {:type (list String)}}
+                          :resolve     :query-people}}}

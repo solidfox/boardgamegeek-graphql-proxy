@@ -1,9 +1,5 @@
 (ns inventist.graphql.server
   (:require [inventist.db.core :as db]
-            [inventist.db.schema :as schema]
-            [datomic.api :as d]
-            [inventist.schoolsoft.client.core :as schoolsoft]
-            [inventist.datorbasen.client.core :as datorbasen]
             [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.interceptor :refer [interceptor]]

@@ -53,7 +53,7 @@
         (str/replace ":" ""))
     k))
 
-(defn pulled-keyword-to-graphql-keyword
+(defn pulled-keyword->graphql-keyword
   [k]
   (-> k
       (str/replace ":" "")
@@ -61,6 +61,14 @@
       second
       (str/replace "-" "_")
       keyword))
+
+(defn pulled-result->graphql-result
+  [result]
+  (->> result
+       (map (fn [[k v]]
+              [(pulled-keyword->graphql-keyword k)
+               (keyword?->string v)]))
+       (into {})))
 
 
 (defn get-people
@@ -78,24 +86,68 @@
                      :first_name    "Lisa"}
                     {:schoolsoft_id "test2"
                      :first_name    "Per"}}))}
-  [db]
-  (->> (d/q '[:find (pull ?e ["*"])
-              :where
-              [?e :person/schoolsoft-id _]]
-            db)
+  [db & [{groups :groups}]]
+  (->> (d/q (if groups
+              '[:find (pull ?e ["*"])
+                :in $ [?group ...]
+                :where
+                [?e :person/schoolsoft-id]
+                [?e :person/groups ?group-eid]
+                (or [(= ?group ?group-eid)]
+                    [?group-eid :group/name ?group])]
+              '[:find (pull ?e ["*"])
+                :where
+                [?e :person/schoolsoft-id]])
+            db
+            groups)
        (map first)
-       (map (fn [result]
-              (->> result
-                   (map (fn [[k v]]
-                          [(pulled-keyword-to-graphql-keyword k)
-                           (keyword?->string v)]))
-                   (into {}))))))
+       (map pulled-result->graphql-result)))
+
+(defn query-inventory [db {search-terms :search_terms}]
+  (->> (d/q (if search-terms
+              '[:find (pull ?e ["*"])
+                :in $ [?search-terms ...]
+                :where
+                (or [?e :inventory-item/serial-number ?v]
+                    [?e :inventory-item/model-name ?v])
+                [(str "(?i)" ?search-terms) ?pattern-str]
+                [(re-pattern ?pattern-str) ?pattern]
+                [(re-find ?pattern ?v)]]
+              '[:find (pull ?e ["*"])
+                :where
+                (or [?e :inventory-item/serial-number]
+                    [?e :inventory-item/name]
+                    [?e :inventory-item/brand]
+                    [?e :inventory-item/image-url])])
+            db
+            search-terms)
+       (map first)
+       (map pulled-result->graphql-result)))
+
+(defn get-inventory-of-person
+  [db {person-db-id :person-db-id}]
+  (->> (d/q '[:find (pull ?e ["*"])
+              :in $ ?person-eid
+              :where [?e :inventory-item/users ?person-eid]]
+            db
+            person-db-id)
+       (map first)
+       (map pulled-result->graphql-result)
+       (map (fn [result] (assoc result :class "laptop")))))
+
 
 (defn get-group
-  [db {db-group-id :db-group-id}]
-  (->> (d/pull db ["*"] db-group-id)
+  [db {group-eid :group-db-id}]
+  (->> (d/pull db ["*"] group-eid)
        (map (fn [[k v]]
-              [(pulled-keyword-to-graphql-keyword k)
+              [(pulled-keyword->graphql-keyword k)
+               (keyword?->string v)]))
+       (into {})))
+
+(defn get-person [db {person-eid :person-db-id}]
+  (->> (d/pull db ["*"] person-eid)
+       (map (fn [[k v]]
+              [(pulled-keyword->graphql-keyword k)
                (keyword?->string v)]))
        (into {})))
 
@@ -135,7 +187,26 @@
          [?ce :inventory-item/users ?users]]
        (d/db (import-fresh-database! in-memory-uri)))
 
-  (get-people (d/db (import-fresh-database! in-memory-uri)))
-  (get-group (d/db (d/connect in-memory-uri)) {:db-group-id 17592186045486}))
+  (-> (get-people (d/db (import-fresh-database! in-memory-uri)) {:groups ["7-Tigrar"]})
+      (last)
+      ((fn [{id     :id
+             groups :groups
+             :as    person}]
+         (def group-eid (get (first groups) ":db/id"))
+         (def person-eid id)
+         person)))
+  (d/q '[:find (pull ?e ["*"])
+         :in $ ?person-eid
+         :where [?e :inventory-item/users ?person-eid]]
+       (d/db (d/connect in-memory-uri))
+       17592186045955)
+
+  (query-inventory (d/db (d/connect in-memory-uri)) {:search_terms ["2012"]})
+  (get-group (d/db (d/connect in-memory-uri)) {:group-db-id group-eid})
+  (get-person (d/db (d/connect in-memory-uri)) {:person-db-id person-eid})
+  (get-inventory-of-person (d/db (d/connect in-memory-uri)) {:person-db-id person-eid}))
+
+
+
 
 

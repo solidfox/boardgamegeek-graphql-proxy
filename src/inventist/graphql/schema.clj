@@ -8,16 +8,32 @@
     [inventist.db.core :as db]
     [datomic.api :as d]))
 
-(defn ^:private resolve-people
+;; TODO: Error handling, including not found
+(defn ^:private query-people
   [context args _value]
-  ;; TODO: Error handling, including not found
-  (db/get-people (d/db (:db-connection context))))
+  (db/get-people (d/db (:db-connection context)) args))
+
+(defn ^:private query-computers
+  [context args _value]
+  (println args)
+  (db/query-inventory (d/db (:db-connection context)) args))
+
+(defn ^:private resolve-person
+  [context args parent]
+  (let [person-id (or (get-in parent [:users ":db/id"])
+                      (get-in parent [:new-user ":db/id"]))]
+    (db/get-person (d/db (:db-connection context)) {:person-db-id person-id})))
 
 (defn ^:private resolve-groups
   [context args person]
   (for [group (:groups person)]
     (db/get-group (d/db (:db-connection context))
-                  {:db-group-id (get group ":db/id")})))
+                  {:group-db-id (get group ":db/id")})))
+
+(defn ^:private resolve-computers
+  [context args parent]
+  (db/get-inventory-of-person (d/db (:db-connection context))
+                              {:person-db-id (:id parent)}))
 
 (defn ^:private resolve-search
   [context args _value]
@@ -42,11 +58,13 @@
   (-> (io/resource "inventist-schema.edn")
       slurp
       edn/read-string
-      (attach-resolvers {:resolve-groups                 resolve-groups
-                         :resolve-documents              resolve-people
-                         :resolve-inventory-history-item resolve-people
-                         :resolve-people                 resolve-people
-                         :resolve-computers              resolve-people
+      (attach-resolvers {:resolve-person                 resolve-person
+                         :resolve-groups                 resolve-groups
+                         :resolve-documents              identity
+                         :resolve-inventory-history-item identity
+                         :query-people                   query-people
+                         :query-computers                query-computers
+                         :resolve-computers              resolve-computers
                          :resolve-search                 resolve-search
                          :resolve-game-publishers        resolve-game-publishers
                          :resolve-game-designers         resolve-game-designers})
