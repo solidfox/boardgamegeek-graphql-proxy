@@ -1,7 +1,5 @@
 (ns inventist.schoolsoft.client.core
   (:require [clojure.java.io :as io]
-            [datomic.api :as d]
-            [inventist.db.core :as db]
             [ysera.test :refer [is-not]]
             [inventist.util.core :as util]))
 

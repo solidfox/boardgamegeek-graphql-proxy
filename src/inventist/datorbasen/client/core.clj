@@ -3,7 +3,6 @@
             [clojure.java.io :as io]
             [datomic.api :as d]
             [clojure.string :as string]
-            [inventist.db.core :as db]
             [clojure.instant :refer [read-instant-date]]))
 
 
@@ -61,20 +60,6 @@
                             (string/replace #"\s+" "-"))))
        (map (fn [registration] (datorbasen-registration->inventory-item registration db)))))
 
-(comment
-  (-> (util/read-csv (-> "confidential/inventory/registreringar.csv"
-                         io/resource
-                         io/file)
-                     (fn [heading]
-                       (-> heading
-                           (string/lower-case)
-                           (string/replace #"\s+" "-"))))
-      (datorbasen-registration->inventory-item (d/db (db/fresh-database db/in-memory-uri)))))
-;(map (fn [registration] (find-user-person-entity (d/db db/conn) registration)))))
-
-
-
-;(d/transact db/conn)))
 
 (comment "Example computer"
          {:födelsedag                           "0000-00-00",
@@ -94,7 +79,7 @@
           :modellnamn                           "MacBook Air (13-inch, 2017)",
           :ledig-hårddisk                       "83",
           :kan-lösenord                         "TRUE",
-          :timestamp                            "2/16/2018 22:04:22",
+          :timestamp                            "2018-02-16T22:04:22",
           :diagnostik                           "",
           :modell                               "MacBookAir7,2",
           :hårddisk                             "120"})

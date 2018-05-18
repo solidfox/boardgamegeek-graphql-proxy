@@ -1,12 +1,9 @@
-{:interfaces {
-              :Entity        {:description "A Standard entity with id."
-                              :fields      {:id {:type (non-null ID)}}}
+{:interfaces {:Entity        {:description "A Standard entity with id."
+                              :fields      {:id {:type (non-null ID)}}}}
 
-              :InventoryItem {:description "Something that can exist in an inventory."
-                              :fields      {:id        {:type (non-null ID)}
-                                            :name      {:type String}
-                                            :image-url {:type String}}}}
- :enums      {:sex {:values [:male :female]}}
+ :unions {:InventoryHistoryItem
+          {:members [:Reallocation :Comment :Issue]}}
+
  :objects    {:Company            {:description "A company that may publish a Board Game."
                                    :implements  [:Entity]
                                    :fields      {:id          {:type (non-null ID)}
@@ -16,15 +13,15 @@
               :Person             {:description "Person who may have inventory."
                                    :implements  [:Entity]
                                    :fields      {:id         {:type (non-null ID)}
-                                                 :kind       {:type        String
-                                                              :description "E.g. teacher or student."}
-                                                 :groups     {:type (list :Group)}
-                                                 :photo-url  {:type String}
-                                                 :first-name {:type String}
-                                                 :last-name  {:type String}
-                                                 :email      {:type String}
+                                                 :occupation {:type        String
+                                                              :description "E.g. staff or student."}
+                                                 :groups     {:type    (list :Group)
+                                                              :resolve :resolve-groups}
+                                                 :photo_url  {:type String}
+                                                 :first_name {:type String}
+                                                 :last_name  {:type String}
+                                                 :email      {:type (list String)}
                                                  :username   {:type String}
-                                                 :sex        {:type :sex}
                                                  :phone      {:type String}
                                                  :address    {:type String}
                                                  :inventory  {:type    (list :InventoryItem)
@@ -35,44 +32,43 @@
                                    :fields      {:id           {:type (non-null ID)}
                                                  :name         {:type String}
                                                  :description  {:type String}
-                                                 :school-class {:type Bool}
-                                                 :active       {:type Bool}}}
+                                                 :school_class {:type Boolean}
+                                                 :active       {:type Boolean}}}
 
               :Computer           {:description "Details about a computer."
-                                   :implements  [:InventoryItem]
                                    :fields      {:id               {:type (non-null ID)}
                                                  :name             {:type String}
-                                                 :release-date     {:type Int}
+                                                 :release_date     {:type Int}
                                                  :brand            {:type String}
-                                                 :model-name       {:type String}
-                                                 :model-identifier {:type String}
+                                                 :model_name       {:type String}
+                                                 :model_identifier {:type String}
                                                  :color            {:type String}
-                                                 :serial-number    {:type String}
-                                                 :image-url        {:type String}
-                                                 :history          {:type    (list :InventoryItemEvent)
-                                                                    :resolve :resolve-inventory-item-event}
-                                                 :purchase-details {:type :PurchaseDetails}}}
+                                                 :serial_number    {:type String}
+                                                 :image_url        {:type String}
+                                                 :history          {:type    (list :InventoryHistoryItem)
+                                                                    :resolve :resolve-inventory-history-item}
+                                                 :purchase_details {:type :PurchaseDetails}}}
 
               :PurchaseDetails    {:description "Details about how a computer was acquired."
-                                   :fields      {:purchase-id       {:type (non-null ID)}
+                                   :fields      {:purchase_id       {:type (non-null ID)}
                                                  :documents         {:type    (list :Document)
                                                                      :resolve :resolve-documents}
                                                  :supplier          {:type :Company}
-                                                 :delivery-date     {:type Int}
-                                                 :insurance-expires {:type Int}
-                                                 :warranty-expires  {:type Int}}}
+                                                 :delivery_date     {:type Int}
+                                                 :insurance_expires {:type Int}
+                                                 :warranty_expires  {:type Int}}}
 
               :InventoryItemEvent {:description "Something that happened to an inventory item. Such as being reassigned, repaired or decommissioned."
-                                   :person      {:type :Person}
-                                   :date-time   {:type Int}
-                                   :comment     {:type String}}
+                                   :fields      {:person    {:type :Person}
+                                                 :date_time {:type Int}
+                                                 :comment   {:type String}}}
 
               :Document           {:description "A file."
-                                   :id          {:type ID}
-                                   :file-type   {:type String}
-                                   :name        {:type String}
-                                   :comment     {:type String}
-                                   :url         {:type String}}}
+                                   :fields      {:id        {:type ID}
+                                                 :file_type {:type String}
+                                                 :name      {:type String}
+                                                 :comment   {:type String}
+                                                 :url       {:type String}}}}
 
 
 
@@ -81,7 +77,7 @@
 
  :queries    {:computers {:type        (list :Computer)
                           :description "Retrieve a filtered list of computers."
-                          :args        {:model-name {:type String}}
+                          :args        {:model_name {:type String}}
                           :resolve     :resolve-computers}
               :people    {:type        (list :Person)
                           :description "Retrieve a filtered list of people."

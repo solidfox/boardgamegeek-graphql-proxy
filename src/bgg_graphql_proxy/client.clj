@@ -5,7 +5,8 @@
     [clj-http.client :as client]
     [clojure.data.xml :as xml]
     [clojure.string :as str]
-    [clojure.tools.logging :as log])
+    [clojure.tools.logging :as log]
+    [inventist.db.core :as db])
   (:import (java.io StringReader)))
 
 (def ^:private base-url "https://www.boardgamegeek.com/xmlapi")
@@ -85,14 +86,7 @@
 (defn get-people
   [cache {ids   :ids
           group :group}]
-  (or (cache/resolve-by-id cache :games id)
-      (let [game (->> (get-xml (str base-url "/boardgame/" id) nil)
-                      (expect-tag :boardgames)
-                      :content
-                      first
-                      xml->board-game)]
-        (cache/fill cache :games [game])
-        game)))
+  (inventist.db.core/get-people))
 
 
 
@@ -112,6 +106,8 @@
                         (map xml->board-game)))]
     (cache/fill cache :games games)
     (concat cached games)))
+
+(comment (search (atom {}) "zertz"))
 
 (defn ^:private xml->map
   [element keys]
