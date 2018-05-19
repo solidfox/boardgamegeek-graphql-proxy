@@ -15,3 +15,5 @@ pom.xml.asc
 confidential
 
 .DS_Store
+
+/resources/graphiql/photos/
