@@ -74,9 +74,9 @@
        (into {})))
 
 (defn correct-person-photo-url [person]
-  (if (:photo_url person)
+  (if (not-empty (:photo_url person))
     (assoc person :photo_url (str (:schoolsoft_id person) ".jpg"))
-    person))
+    (dissoc person :photo_url)))
 
 
 (defn get-person [db {person-eid :person-db-id}]
