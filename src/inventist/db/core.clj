@@ -73,6 +73,19 @@
                (keyword?->string v)]))
        (into {})))
 
+(defn correct-person-photo-url [person]
+  (if (:photo_url person)
+    (assoc person :photo_url (str (:schoolsoft_id person) ".jpg"))
+    person))
+
+
+(defn get-person [db {person-eid :person-db-id}]
+  (->> (d/pull db ["*"] person-eid)
+       (map (fn [[k v]]
+              [(pulled-keyword->graphql-keyword k)
+               (keyword?->string v)]))
+       (into {})
+       (correct-person-photo-url)))
 
 (defn get-people
   {:test (fn [] (is=
@@ -104,7 +117,8 @@
             db
             groups)
        (map first)
-       (map pulled-result->graphql-result)))
+       (map pulled-result->graphql-result)
+       (map correct-person-photo-url)))
 
 (defn query-inventory [db {search-terms :search_terms}]
   (->> (d/q (if search-terms
@@ -160,12 +174,6 @@
                (keyword?->string v)]))
        (into {})))
 
-(defn get-person [db {person-eid :person-db-id}]
-  (->> (d/pull db ["*"] person-eid)
-       (map (fn [[k v]]
-              [(pulled-keyword->graphql-keyword k)
-               (keyword?->string v)]))
-       (into {})))
 
 (comment
   (d/q '[:find ?e ?name ?lname ?computer                    ;(pull ?ce ["*"])
