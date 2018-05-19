@@ -67,4 +67,4 @@
                        ::http/type            :jetty
                        ::http/join?           false
                        ::http/allowed-origins {:creds true :allowed-origins ["http://localhost:3449"
-                                                                             "http://inventory.gripsholmsskolan.se:80"]}}))
+                                                                             "http://inventory.gripsholmsskolan.se"]}}))
