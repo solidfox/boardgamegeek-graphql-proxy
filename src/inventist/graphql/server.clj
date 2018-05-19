@@ -60,9 +60,11 @@
 (defn pedestal-server
   "Creates and returns server instance, ready to be started."
   [compiled-schema]
-  (http/create-server {:env                 :dev
-                       ::http/routes        (routes compiled-schema)
-                       ::http/resource-path "graphiql"
-                       ::http/port          8888
-                       ::http/type          :jetty
-                       ::http/join?         false}))
+  (http/create-server {:env                   :dev
+                       ::http/routes          (routes compiled-schema)
+                       ::http/resource-path   "graphiql"
+                       ::http/port            8888
+                       ::http/type            :jetty
+                       ::http/join?           false
+                       ::http/allowed-origins {:creds true :allowed-origins ["http://localhost:3449"
+                                                                             "http://inventory.gripsholmsskolan.se:80"]}}))
