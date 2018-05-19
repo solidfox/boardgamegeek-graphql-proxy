@@ -36,12 +36,14 @@
   "Accepts a GraphQL query via GET or POST, and executes the query.
   Returns the result as text/json."
   [compiled-schema]
-  (let [context {:db-connection (db/import-fresh-database! db/in-memory-uri)
+  (let [app-context {:db-connection (db/import-fresh-database! db/in-memory-uri)
                  :cache (atom {})}]
     (fn [request]
       (let [vars   (variable-map request)
             query  (extract-query request)
-            result (execute compiled-schema query vars context)
+            request-base-url (subs (str (:scheme request) "://" (:server-name request) ":" (:server-port request)) 1)
+            request-context (assoc app-context :files-base-url request-base-url)
+            result (execute compiled-schema query vars request-context)
             status (if (-> result :errors seq)
                      400
                      200)]

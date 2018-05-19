@@ -5,12 +5,29 @@
     [com.walmartlabs.lacinia.schema :as schema]
     [com.walmartlabs.lacinia.util :refer [attach-resolvers]]
     [inventist.db.core :as db]
-    [datomic.api :as d]))
+    [datomic.api :as d]
+    [clojure.string :as str]
+    [ysera.test :refer [is=]]))
+
+(defn add-photo-base-url
+  {:test (fn [] (is= (add-photo-base-url {:photo_url "1.jpg"} "http://a.b")
+                     {:photo_url "http://a.b/photos/1.jpg"}))}
+  [person files-base-url]
+  (update person :photo_url
+          (fn [image-name]
+            (when (not-empty image-name)
+              (str/join "/"
+                        [files-base-url
+                         "photos"
+                         (str/replace image-name
+                                      #"^/" "")])))))
 
 ;; TODO: Error handling, including not found
 (defn ^:private query-people
   [context args _value]
-  (db/get-people (d/db (:db-connection context)) args))
+  (->> (db/get-people (d/db (:db-connection context)) args)
+       (map (fn [person]
+              (add-photo-base-url person (:files-base-url context))))))
 
 (defn ^:private query-computers
   [context args _value]
@@ -21,7 +38,8 @@
   [context args parent]
   (let [person-id (or (get-in parent [:users ":db/id"])
                       (get-in parent [:new_user]))]
-    (db/get-person (d/db (:db-connection context)) {:person-db-id person-id})))
+    (-> (db/get-person (d/db (:db-connection context)) {:person-db-id person-id})
+        (add-photo-base-url (:files-base-url context)))))
 
 (defn ^:private resolve-groups
   [context args person]
