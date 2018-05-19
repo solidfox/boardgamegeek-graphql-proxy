@@ -69,8 +69,5 @@
                          :resolve-inventory-history resolve-inventory-history
                          :query-people              query-people
                          :query-computers           query-computers
-                         :resolve-computers         resolve-computers
-                         :resolve-search            resolve-search
-                         :resolve-game-publishers   resolve-game-publishers
-                         :resolve-game-designers    resolve-game-designers})
+                         :resolve-computers         resolve-computers})
       schema/compile))

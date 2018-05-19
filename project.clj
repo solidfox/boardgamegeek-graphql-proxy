@@ -1,5 +1,5 @@
-(defproject com.howardlewisship/bgg-graphql-proxy "0.0.1"
-  :description "GraphQL interface to BoardGameGeek"
+(defproject com.schlaug/inventist-backend "0.0.1"
+  :description "Backend for Inventist, providing database operations and GraphQL connectivity."
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [io.aviso/logging "0.2.0"]
                  [com.walmartlabs/lacinia "0.25.0"]
@@ -12,7 +12,7 @@
                  [org.clojure/data.csv "0.1.4"]
                  [datomic-schema "1.3.0"]
                  [ysera "1.2.0"]
-                 [clj-time "0.11.0"]]
+                 [clj-time "0.11.0"]])
 
-  :codox {:source-uri "https://github.com/hlship/boardgamegeek-graphql-proxy/blob/master/{filepath}#L{line}"
-          :metadata {:doc/format :markdown}})
+  ;:codox {:source-uri "https://github.com/hlship/boardgamegeek-graphql-proxy/blob/master/{filepath}#L{line}"
+  ;        :metadata {:doc/format :markdown}})
