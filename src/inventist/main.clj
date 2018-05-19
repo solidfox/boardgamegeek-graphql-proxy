@@ -1,4 +1,4 @@
-(ns bgg-graphql-proxy.main
+(ns inventist.main
   (:require
     [io.pedestal.http :as http]
     [com.walmartlabs.lacinia :refer [execute]]

@@ -4,7 +4,6 @@
     [clojure.edn :as edn]
     [com.walmartlabs.lacinia.schema :as schema]
     [com.walmartlabs.lacinia.util :refer [attach-resolvers]]
-    [bgg-graphql-proxy.client :as client]
     [inventist.db.core :as db]
     [datomic.api :as d]))
 
@@ -39,24 +38,6 @@
   [context args parent]
   (db/get-inventory-history-of-item (d/db (:db-connection context))
                                     {:inventory-item-db-id (:id parent)}))
-
-(defn ^:private resolve-search
-  [context args _value]
-  (client/search (:cache context) (:term args)))
-
-(defn ^:private extract-ids
-  [board-game key args]
-  (let [{:keys [limit]} args]
-    (cond->> (get board-game key)
-             limit (take limit))))
-
-(defn ^:private resolve-game-publishers
-  [context args board-game]
-  (client/publishers (:cache context) (extract-ids board-game :publisher-ids args)))
-
-(defn ^:private resolve-game-designers
-  [context args board-game]
-  (client/designers (:cache context) (extract-ids board-game :designer-ids args)))
 
 (defn inventist-schema
   []
