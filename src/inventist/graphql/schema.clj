@@ -40,8 +40,9 @@
 
 (defn ^:private resolve-person
   [context args parent]
-  (let [person-id (or (get-in parent [:users ":db/id"])
-                      (get-in parent [:new_user]))]
+  (if-let [person-id (or (get-in parent [:users ":db/id"])
+                         (get-in parent [:new_user])
+                         (:id args))]
     (-> (db/get-person (d/db (:db-connection context)) {:person-db-id person-id})
         (add-photo-base-url (:files-base-url context)))))
 

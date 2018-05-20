@@ -90,6 +90,11 @@
                           :resolve     :query-computers}
               :people    {:type        (list :Person)
                           :description "Retrieve a filtered list of people."
-                          :args        {:ids    {:type (list ID)}
-                                        :groups {:type (list String)}}
-                          :resolve     :query-people}}}
+                          :args        {:groups {:type (list String)}}
+                          :resolve     :query-people}
+              :person    {:type        :Person
+                          :description "Retrieve a single person."
+                          :args        {:id            {:type ID}
+                                        :email         {:type String}
+                                        :schoolsoft-id {:type String}}
+                          :resolve     :resolve-person}}}
