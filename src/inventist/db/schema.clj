@@ -125,8 +125,3 @@
                            person-schema
                            people-group-schema
                            document-schema))
-
-(comment
-  (d/q '[:find ?id ?name
-         :where [?e :document/id ?id]
-         [?e :document/name ?name]] (d/db core/conn)))

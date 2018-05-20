@@ -3,6 +3,9 @@
             [ysera.test :refer [is-not]]
             [inventist.util.core :as util]))
 
+(comment "Here people data is converted to Datomic transactions from tsv files that have been redacted from"
+         "this git-repo for natural reasons.")
+
 (defn schoolsoft-groups->db-people-groups [schoolsoft-groups]
   (->> schoolsoft-groups
        (map (fn [group] {:group/schoolsoft-id (:id group)

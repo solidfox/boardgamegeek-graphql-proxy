@@ -9,6 +9,10 @@
     [clojure.string :as str]
     [ysera.test :refer [is=]]))
 
+(comment
+  "This file reads the graph-ql schema from resources/inventist-schema.edn and "
+  "defines and connects the functions used to resolve the GraphQL queries.")
+
 (defn add-photo-base-url
   {:test (fn [] (is= (add-photo-base-url {:photo_url "1.jpg"} "http://a.b")
                      {:photo_url "http://a.b/photos/1.jpg"}))}

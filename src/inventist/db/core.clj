@@ -9,6 +9,8 @@
             [inventist.datorbasen.client.core :as datorbasen]
             [com.walmartlabs.lacinia.schema :refer [tag-with-type]]))
 
+(comment "This file defines functions for interacting with the database.")
+
 (def docker-local-uri
   "datomic:free://localhost:4334/inventist")
 (def in-memory-uri

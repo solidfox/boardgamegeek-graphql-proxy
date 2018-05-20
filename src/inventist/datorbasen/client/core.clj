@@ -5,6 +5,8 @@
             [clojure.string :as string]
             [clojure.instant :refer [read-instant-date]]))
 
+(comment "Here inventory data is converted to Datomic transactions from tsv files that have been redacted from"
+         "this git-repo for natural reasons.")
 
 (defn invariate-text
   [text]
