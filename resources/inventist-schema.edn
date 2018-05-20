@@ -96,5 +96,5 @@
                           :description "Retrieve a single person."
                           :args        {:id            {:type ID}
                                         :email         {:type String}
-                                        :schoolsoft-id {:type String}}
+                                        :schoolsoft_id {:type String}}
                           :resolve     :resolve-person}}}
