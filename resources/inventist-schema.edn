@@ -88,6 +88,11 @@
                           :description "Retrieve a filtered list of computers."
                           :args        {:search_terms {:type (list String)}}
                           :resolve     :query-computers}
+              :computer  {:type        :Computer
+                          :description "Retrieve a single computer."
+                          :args        {:id            {:type ID}
+                                        :serial_number {:type String}}
+                          :resolve     :resolve-computer}
               :people    {:type        (list :Person)
                           :description "Retrieve a filtered list of people."
                           :args        {:groups {:type (list String)}}

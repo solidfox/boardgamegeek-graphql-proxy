@@ -7,7 +7,8 @@
             [clj-time.coerce :refer [from-date]]
             [inventist.schoolsoft.client.core :as schoolsoft]
             [inventist.datorbasen.client.core :as datorbasen]
-            [com.walmartlabs.lacinia.schema :refer [tag-with-type]]))
+            [com.walmartlabs.lacinia.schema :refer [tag-with-type]]
+            [clojure.pprint :refer [pprint]]))
 
 (comment "This file defines functions for interacting with the database.")
 
@@ -82,6 +83,7 @@
 
 
 (defn get-person [db {person-eid :person-db-id}]
+  (println (type person-eid))
   (->> (d/pull db ["*"] person-eid)
        (map (fn [[k v]]
               [(pulled-keyword->graphql-keyword k)
@@ -121,6 +123,22 @@
        (map first)
        (map pulled-result->graphql-result)
        (map correct-person-photo-url)))
+
+(defn get-inventory-item [db {serial-number :serial-number
+                              id            :id}]
+  (->> (cond id
+             (d/pull db ["*"] id)
+             serial-number
+             (ffirst
+               (d/q '[:find (pull ?e ["*"])
+                      :in $ ?serial-number
+                      :where
+                      [?e :inventory-item/serial-number ?serial-number]]
+                    db serial-number)))
+       (map (fn [[k v]]
+              [(pulled-keyword->graphql-keyword k)
+               (keyword?->string v)]))
+       (into {})))
 
 (defn query-inventory [db {search-terms :search_terms}]
   (->> (d/q (if search-terms
@@ -168,6 +186,7 @@
                               :instant  (time/unparse (time/formatters :date-time-no-ms) (from-date instant))}
                              :Reallocation)))))
 
+
 (defn get-group
   [db {group-eid :group-db-id}]
   (->> (d/pull db ["*"] group-eid)
@@ -175,7 +194,6 @@
               [(pulled-keyword->graphql-keyword k)
                (keyword?->string v)]))
        (into {})))
-
 
 (comment
   (d/q '[:find ?e ?name ?lname ?computer                    ;(pull ?ce ["*"])

@@ -27,6 +27,20 @@
                                       #"^/" "")])))))
 
 ;; TODO: Error handling, including not found
+(defn ^:private resolve-groups
+  [context args person]
+  (for [group (:groups person)]
+    (db/get-group (d/db (:db-connection context))
+                  {:group-db-id (get group ":db/id")})))
+
+(defn ^:private resolve-person
+  [context args parent]
+  (if-let [person-id (or (get-in parent [:users ":db/id"])
+                         (get-in parent [:new_user])
+                         (Long. (:id args)))]
+    (-> (db/get-person (d/db (:db-connection context)) {:person-db-id person-id})
+        (add-photo-base-url (:files-base-url context)))))
+
 (defn ^:private query-people
   [context args _value]
   (->> (db/get-people (d/db (:db-connection context)) args)
@@ -38,24 +52,17 @@
   (println args)
   (db/query-inventory (d/db (:db-connection context)) args))
 
-(defn ^:private resolve-person
-  [context args parent]
-  (if-let [person-id (or (get-in parent [:users ":db/id"])
-                         (get-in parent [:new_user])
-                         (:id args))]
-    (-> (db/get-person (d/db (:db-connection context)) {:person-db-id person-id})
-        (add-photo-base-url (:files-base-url context)))))
-
-(defn ^:private resolve-groups
-  [context args person]
-  (for [group (:groups person)]
-    (db/get-group (d/db (:db-connection context))
-                  {:group-db-id (get group ":db/id")})))
-
 (defn ^:private resolve-computers
   [context args parent]
   (db/get-inventory-of-person (d/db (:db-connection context))
                               {:person-db-id (:id parent)}))
+
+(defn ^:private resolve-computer
+  [context args _parent]
+  (db/get-inventory-item (d/db (:db-connection context))
+                         {:id            (when-let [id (:id args)]
+                                           (Long. id))
+                          :serial-number (:serial_number args)}))
 
 (defn ^:private resolve-inventory-history
   [context args parent]
@@ -73,5 +80,6 @@
                          :resolve-inventory-history resolve-inventory-history
                          :query-people              query-people
                          :query-computers           query-computers
-                         :resolve-computers         resolve-computers})
+                         :resolve-computers         resolve-computers
+                         :resolve-computer          resolve-computer})
       schema/compile))
