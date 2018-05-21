@@ -7,7 +7,8 @@
     [inventist.db.core :as db]
     [datomic.api :as d]
     [clojure.string :as str]
-    [ysera.test :refer [is=]]))
+    [ysera.test :refer [is=]]
+    [inventist.util.core :as util]))
 
 (comment
   "This file reads the graph-ql schema from resources/inventist-schema.edn and "
@@ -58,28 +59,37 @@
                               {:person-db-id (:id parent)}))
 
 (defn ^:private resolve-computer
-  [context args _parent]
+  [context args parent]
   (db/get-inventory-item (d/db (:db-connection context))
-                         {:id            (when-let [id (:id args)]
-                                           (Long. id))
-                          :serial-number (:serial_number args)}))
+                         {:id
+                          ; Prioritize the passed id argument over parent id.
+                          (if-let [id (:id args)] (Long. id)
+                                                  (:inventory_item parent))
+                          :serial-number
+                          (:serial_number args)}))
 
 (defn ^:private resolve-inventory-history
   [context args parent]
   (db/get-inventory-history-of-item (d/db (:db-connection context))
                                     {:inventory-item-db-id (:id parent)}))
 
+(defn ^:private resolve-person-history
+  [context args parent]
+  (db/get-inventory-history-of-person (d/db (:db-connection context))
+                                      {:person-db-id (:id parent)}))
+
 (defn inventist-schema
   []
   (-> (io/resource "inventist-schema.edn")
       slurp
       edn/read-string
-      (attach-resolvers {:resolve-person            resolve-person
+      (attach-resolvers {:resolve-documents         identity ;TODO
                          :resolve-groups            resolve-groups
-                         :resolve-documents         identity
-                         :resolve-inventory-history resolve-inventory-history
+                         :resolve-person            resolve-person
                          :query-people              query-people
-                         :query-computers           query-computers
+                         :resolve-person-history    resolve-person-history
+                         :resolve-computer          resolve-computer
                          :resolve-computers         resolve-computers
-                         :resolve-computer          resolve-computer})
+                         :query-computers           query-computers
+                         :resolve-inventory-history resolve-inventory-history})
       schema/compile))

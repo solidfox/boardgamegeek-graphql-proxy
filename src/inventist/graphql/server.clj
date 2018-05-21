@@ -37,7 +37,7 @@
   Returns the result as text/json."
   [compiled-schema]
   (let [app-context {:db-connection (db/import-fresh-database! db/in-memory-uri)
-                 :cache (atom {})}]
+                     :cache (atom {})}]
     (fn [request]
       (let [vars   (variable-map request)
             query  (extract-query request)
@@ -69,5 +69,6 @@
                        ::http/type            :jetty
                        ::http/join?           false
                        ::http/allowed-origins {:creds true :allowed-origins ["http://localhost:3449"
+                                                                             "http://localhost:8888"
                                                                              "http://inventory.gripsholmsskolan.se"
                                                                              "http://backend.inventory.gripsholmsskolan.se:8888"]}}))

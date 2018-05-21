@@ -172,20 +172,35 @@
        (map pulled-result->graphql-result)
        (map (fn [result] (assoc result :class "laptop")))))
 
+(defn- query-result->reallocation
+  [[inventory-item new-user instant]]
+  (tag-with-type {:inventory_item inventory-item
+                  :new_user       new-user
+                  :instant        (time/unparse (time/formatters :date-time-no-ms) (from-date instant))}
+                 :Reallocation))
+
 (defn get-inventory-history-of-item
   [db {id :inventory-item-db-id}]
-  (->> (d/q '[:find ?user ?instant
+  (->> (d/q '[:find ?inventory-item-eid ?person-eid ?instant
               :in $ ?inventory-item-eid
               :where
-              [?inventory-item-eid :inventory-item/users ?user ?tx]
+              [?inventory-item-eid :inventory-item/users ?person-eid ?tx]
               [?tx :db/txInstant ?instant]]
             (d/history db)
             id)
-       (map (fn [[new-user instant]]
-              (tag-with-type {:new_user new-user
-                              :instant  (time/unparse (time/formatters :date-time-no-ms) (from-date instant))}
-                             :Reallocation)))))
+       (map query-result->reallocation)))
 
+
+(defn get-inventory-history-of-person
+  [db {id :person-db-id}]
+  (->> (d/q '[:find ?inventory-item-eid ?person-eid ?instant
+              :in $ ?person-eid
+              :where
+              [?inventory-item-eid :inventory-item/users ?person-eid ?tx]
+              [?tx :db/txInstant ?instant]]
+            (d/history db)
+            id)
+       (map query-result->reallocation)))
 
 (defn get-group
   [db {group-eid :group-db-id}]
@@ -229,7 +244,8 @@
   (get-group (d/db (d/connect in-memory-uri)) {:group-db-id group-eid})
   (get-person (d/db (d/connect in-memory-uri)) {:person-db-id person-eid})
   (get-inventory-of-person (d/db (d/connect in-memory-uri)) {:person-db-id person-eid})
-  (get-inventory-history-of-item (d/db (d/connect in-memory-uri)) {:inventory-item-db-id 17592186046563}))
+  (get-inventory-history-of-item (d/db (d/connect in-memory-uri)) {:inventory-item-db-id 17592186046563})
+  (get-inventory-history-of-person (d/db (d/connect in-memory-uri)) {:person-db-id person-eid}))
 
 
 

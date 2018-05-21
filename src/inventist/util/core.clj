@@ -1,6 +1,7 @@
 (ns inventist.util.core
   (:require [clojure.data.csv :as csv]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [clojure.pprint :refer [pprint]]))
 
 (defn csv-data->maps [csv-data & [heading-transform]]
   (map zipmap
@@ -21,3 +22,7 @@
     (doall
       (csv-data->maps (csv/read-csv reader
                                     :separator \,) heading-transform))))
+
+(defn spy [x]
+  (pprint x)
+  x)

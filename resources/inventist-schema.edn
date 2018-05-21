@@ -2,8 +2,11 @@
                        :fields      {:id {:type (non-null ID)}}}}
 
 
- :unions     {:InventoryHistoryItem
-              {:members [:Reallocation]}}
+ :unions     {:InventoryHistoryItem {:members
+                                     [:Reallocation]}
+              :PersonHistoryItem    {:members
+                                     [:Reallocation]}}
+
 
 
  :objects    {:Company            {:description "A company that may publish a Board Game."
@@ -27,7 +30,9 @@
                                                  :phone      {:type String}
                                                  :address    {:type String}
                                                  :inventory  {:type    (list :Computer)
-                                                              :resolve :resolve-computers}}}
+                                                              :resolve :resolve-computers}
+                                                 :history    {:type    (list :PersonHistoryItem)
+                                                              :resolve :resolve-person-history}}}
 
               :Group              {:description "A group of persons."
                                    :implements  [:Entity]
@@ -57,10 +62,12 @@
                                                  :purchase_details {:type :PurchaseDetails}}}
 
               :Reallocation       {:description "Describes a reallocation of an inventory item."
-                                   :fields      {:instant  {:type String}
-                                                 :new_user {:type    :Person
-                                                            :resolve :resolve-person}
-                                                 :comment  {:type String}}}
+                                   :fields      {:instant        {:type String}
+                                                 :inventory_item {:type    :Computer
+                                                                  :resolve :resolve-computer}
+                                                 :new_user       {:type    :Person
+                                                                  :resolve :resolve-person}
+                                                 :comment        {:type String}}}
 
               :PurchaseDetails    {:description "Details about how a computer was acquired."
                                    :fields      {:purchase_id       {:type (non-null ID)}
