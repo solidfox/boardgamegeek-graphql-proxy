@@ -25,6 +25,7 @@
                                                  :photo_url  {:type String}
                                                  :first_name {:type String}
                                                  :last_name  {:type String}
+                                                 :gender     {:type String}
                                                  :email      {:type (list String)}
                                                  :username   {:type String}
                                                  :phone      {:type String}

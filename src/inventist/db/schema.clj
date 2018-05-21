@@ -65,6 +65,10 @@
                      :db/valueType   :db.type/string
                      :db/cardinality :db.cardinality/one}
 
+                    {:db/ident       :person/gender
+                     :db/valueType   :db.type/string
+                     :db/cardinality :db.cardinality/one}
+
                     {:db/ident       :person/occupation
                      :db/valueType   :db.type/keyword
                      :db/cardinality :db.cardinality/one}
