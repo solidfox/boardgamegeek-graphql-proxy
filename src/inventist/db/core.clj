@@ -83,7 +83,6 @@
 
 
 (defn get-person [db {person-eid :person-db-id}]
-  (println (type person-eid))
   (->> (d/pull db ["*"] person-eid)
        (map (fn [[k v]]
               [(pulled-keyword->graphql-keyword k)

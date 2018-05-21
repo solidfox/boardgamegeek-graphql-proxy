@@ -50,7 +50,6 @@
 
 (defn ^:private query-computers
   [context args _value]
-  (println args)
   (db/query-inventory (d/db (:db-connection context)) args))
 
 (defn ^:private resolve-computers
