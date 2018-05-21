@@ -54,7 +54,7 @@
                                                  :model_identifier {:type String}
                                                  :color            {:type String}
                                                  :serial_number    {:type String}
-                                                 :users            {:type    :Person
+                                                 :user             {:type    :Person
                                                                     :resolve :resolve-person}
                                                  :image_url        {:type String}
                                                  :history          {:type    (list :InventoryHistoryItem)
