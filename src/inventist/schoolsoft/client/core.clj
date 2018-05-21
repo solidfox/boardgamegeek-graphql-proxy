@@ -19,6 +19,7 @@
        (map (fn [student] {:person/schoolsoft-id (:id student)
                            :person/first-name    (:fname student)
                            :person/last-name     (:lname student)
+                           :person/gender        (:sex student)
                            :person/occupation    :student
                            :person/groups        [{:group/schoolsoft-id (:classid student)}]
                            :person/active        (= "1" (:active student))

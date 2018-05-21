@@ -8,7 +8,8 @@
             [inventist.schoolsoft.client.core :as schoolsoft]
             [inventist.datorbasen.client.core :as datorbasen]
             [com.walmartlabs.lacinia.schema :refer [tag-with-type]]
-            [clojure.pprint :refer [pprint]]))
+            [clojure.pprint :refer [pprint]]
+            [inventist.util.core :as util]))
 
 (comment "This file defines functions for interacting with the database.")
 
@@ -82,8 +83,17 @@
     (dissoc person :photo_url)))
 
 
-(defn get-person [db {person-eid :person-db-id}]
-  (->> (d/pull db ["*"] person-eid)
+(defn get-person [db {person-email :person-email
+                      person-eid   :person-db-id}]
+  (->> (if-let [person-eid person-eid]
+         (d/pull db ["*"] person-eid)
+         (when-let [person-email person-email]
+           (ffirst
+             (d/q '[:find (pull ?e ["*"])
+                    :in $ ?person-email
+                    :where
+                    [?e :person/email ?person-email]]
+                  db person-email))))
        (map (fn [[k v]]
               [(pulled-keyword->graphql-keyword k)
                (keyword?->string v)]))
@@ -242,6 +252,7 @@
   (query-inventory (d/db (d/connect in-memory-uri)) {:search_terms ["2012"]})
   (get-group (d/db (d/connect in-memory-uri)) {:group-db-id group-eid})
   (get-person (d/db (d/connect in-memory-uri)) {:person-db-id person-eid})
+  (get-person (d/db (d/connect in-memory-uri)) {:person-email "daniel.schlaug@gripsholmsskolan.se"})
   (get-inventory-of-person (d/db (d/connect in-memory-uri)) {:person-db-id person-eid})
   (get-inventory-history-of-item (d/db (d/connect in-memory-uri)) {:inventory-item-db-id 17592186046563})
   (get-inventory-history-of-person (d/db (d/connect in-memory-uri)) {:person-db-id person-eid}))

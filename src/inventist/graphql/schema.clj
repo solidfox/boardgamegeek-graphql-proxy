@@ -18,14 +18,16 @@
   {:test (fn [] (is= (add-photo-base-url {:photo_url "1.jpg"} "http://a.b")
                      {:photo_url "http://a.b/photos/1.jpg"}))}
   [person files-base-url]
-  (update person :photo_url
-          (fn [image-name]
-            (when (not-empty image-name)
-              (str/join "/"
-                        [files-base-url
-                         "photos"
-                         (str/replace image-name
-                                      #"^/" "")])))))
+  (if (:photo_url person)
+    (update person :photo_url
+            (fn [image-name]
+              (when (not-empty image-name)
+                (str/join "/"
+                          [files-base-url
+                           "photos"
+                           (str/replace image-name
+                                        #"^/" "")]))))
+    person))
 
 ;; TODO: Error handling, including not found
 (defn ^:private resolve-groups
@@ -36,11 +38,15 @@
 
 (defn ^:private resolve-person
   [context args parent]
-  (if-let [person-id (or (get-in parent [:users ":db/id"])
-                         (get-in parent [:new_user])
-                         (Long. (:id args)))]
-    (-> (db/get-person (d/db (:db-connection context)) {:person-db-id person-id})
-        (add-photo-base-url (:files-base-url context)))))
+  (-> (if-let [person-id (or (get-in parent [:user ":db/id"])
+                             (get-in parent [:new_user])
+                             (try (Long. (:id args))
+                                  (catch Exception e nil)))]
+        (db/get-person (d/db (:db-connection context)) {:person-db-id person-id})
+        (if-let [person-email (:email args)]
+          (db/get-person (d/db (:db-connection context)) {:person-email person-email})))
+      (add-photo-base-url (:files-base-url context))))
+
 
 (defn ^:private query-people
   [context args _value]
