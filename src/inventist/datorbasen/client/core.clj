@@ -49,7 +49,7 @@
            :inventory-item/serial-number    (:serienummer registration)
            :inventory-item/color            "Silver"}
           (when-let [user-entity (find-user-person-entity db registration)]
-            {:inventory-item/users user-entity}))])
+            {:inventory-item/user user-entity}))])
 
 (defn create-transactions-for-all-registrations
   [db]

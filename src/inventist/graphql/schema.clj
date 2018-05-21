@@ -38,7 +38,8 @@
 
 (defn ^:private resolve-person
   [context args parent]
-  (-> (if-let [person-id (or (get-in parent [:user ":db/id"])
+  (util/spy parent)
+  (-> (if-let [person-id (or (util/spy (get-in parent [:user ":db/id"]))
                              (get-in parent [:new_user])
                              (try (Long. (:id args))
                                   (catch Exception e nil)))]

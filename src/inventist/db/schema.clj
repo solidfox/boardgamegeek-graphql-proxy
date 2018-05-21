@@ -27,7 +27,7 @@
                              :db/valueType   :db.type/string
                              :db/cardinality :db.cardinality/one}
 
-                            {:db/ident       :inventory-item/users
+                            {:db/ident       :inventory-item/user
                              :db/valueType   :db.type/ref
                              :db/cardinality :db.cardinality/one}
 

@@ -174,7 +174,7 @@
   [db {person-db-id :person-db-id}]
   (->> (d/q '[:find (pull ?e ["*"])
               :in $ ?person-eid
-              :where [?e :inventory-item/users ?person-eid]]
+              :where [?e :inventory-item/user ?person-eid]]
             db
             person-db-id)
        (map first)
@@ -193,7 +193,7 @@
   (->> (d/q '[:find ?inventory-item-eid ?person-eid ?instant
               :in $ ?inventory-item-eid
               :where
-              [?inventory-item-eid :inventory-item/users ?person-eid ?tx]
+              [?inventory-item-eid :inventory-item/user ?person-eid ?tx]
               [?tx :db/txInstant ?instant]]
             (d/history db)
             id)
@@ -205,7 +205,7 @@
   (->> (d/q '[:find ?inventory-item-eid ?person-eid ?instant
               :in $ ?person-eid
               :where
-              [?inventory-item-eid :inventory-item/users ?person-eid ?tx]
+              [?inventory-item-eid :inventory-item/user ?person-eid ?tx]
               [?tx :db/txInstant ?instant]]
             (d/history db)
             id)
@@ -227,9 +227,9 @@
          [?e :person/active true]
          [?e :person/groups ?group]
          [?group :group/name "7-Leoparder"]
-         [?ce :inventory-item/users ?e]
+         [?ce :inventory-item/user ?e]
          [?ce :inventory-item/model-name ?computer]
-         [?ce :inventory-item/users ?users]]
+         [?ce :inventory-item/user ?users]]
        (d/db (import-fresh-database! in-memory-uri)))
 
   (-> (get-people (d/db (import-fresh-database! in-memory-uri)) {:groups ["7-Tigrar"]})
