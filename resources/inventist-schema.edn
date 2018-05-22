@@ -67,7 +67,7 @@
                                                  :inventory_item {:type    :Computer
                                                                   :resolve :resolve-computer}
                                                  :new_user       {:type    :Person
-                                                                  :resolve :resolve-person}
+                                                                  :resolve :resolve-new-user}
                                                  :old_user       {:type    :Person
                                                                   :resolve :resolve-old-user}
                                                  :comment        {:type String}}}

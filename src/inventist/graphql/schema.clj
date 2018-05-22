@@ -39,12 +39,19 @@
 (defn ^:private resolve-person
   [context args parent]
   (-> (if-let [person-id (or (get-in parent [:user ":db/id"])
-                             (get-in parent [:new_user])
                              (:id args))]
         (db/get-person (d/db (:db-connection context)) {:person-db-id person-id})
         (if-let [person-email (:email args)]
           (db/get-person (d/db (:db-connection context)) {:person-email person-email})))
       (add-photo-base-url (:files-base-url context))))
+
+(defn ^:private resolve-new-user
+  [context _args parent]
+  (resolve-person context {:id (:new_user parent)} nil))
+
+(defn ^:private resolve-old-user
+  [context _args parent]
+  (resolve-person context {:id (:old_user parent)} nil))
 
 
 (defn ^:private query-people
@@ -82,8 +89,9 @@
   [context {inventory-item-id :inventory_item_id
             new-user-id       :new_user_id} _parent]
   (let [conn        (:db-connection context)
-        old-user-id (:user (db/get-inventory-item (d/db conn)
-                                                  {:id inventory-item-id}))
+        old-user-id (get-in (db/get-inventory-item (d/db conn)
+                                                   {:id inventory-item-id})
+                            [:user ":db/id"])
         instant     (:tx-instant (db/set-user-of-inventory-item conn
                                                                 {:inventory-item-id inventory-item-id
                                                                  :new-user-id       new-user-id}))]
@@ -112,5 +120,6 @@
                          :query-computers            query-computers
                          :resolve-inventory-history  resolve-inventory-history
                          :set-user-of-inventory-item set-user-of-inventory-item
-                         :resolve-old-user           identity}) ;TODO
+                         :resolve-new-user           resolve-new-user
+                         :resolve-old-user           resolve-old-user})
       schema/compile))
