@@ -86,19 +86,22 @@
                                       {:person-db-id (:id parent)}))
 
 (defn ^:private set-user-of-inventory-item
-  [context {inventory-item-id :inventory_item_id
-            new-user-id       :new_user_id} _parent]
-  (let [conn        (:db-connection context)
-        old-user-id (get-in (db/get-inventory-item (d/db conn)
-                                                   {:id inventory-item-id})
-                            [:user ":db/id"])
-        instant     (:tx-instant (db/set-user-of-inventory-item conn
-                                                                {:inventory-item-id inventory-item-id
-                                                                 :new-user-id       new-user-id}))]
-    {:instant        instant
+  [context {inventory-item-id            :inventory_item_id
+            inventory-item-serial-number :inventory_item_serial_number
+            new-user-id                  :new_user_id} _parent]
+  (let [conn           (:db-connection context)
+        inventory-item (db/get-inventory-item (d/db conn)
+                          {:id            inventory-item-id
+                           :serial-number inventory-item-serial-number})
+        old-user-id    (get-in inventory-item [:user ":db/id"])]
+    {:instant        (:tx-instant
+                       (db/set-user-of-inventory-item conn
+                          {:inventory-item-id            inventory-item-id
+                           :inventory-item-serial-number inventory-item-serial-number
+                           :new-user-id                  new-user-id}))
      :old_user       old-user-id
      :new_user       new-user-id
-     :inventory_item inventory-item-id}))
+     :inventory_item (:id inventory-item)}))
 
 (defn ^:private resolve-person-history
   [context args parent]

@@ -141,6 +141,7 @@
 
 (defn get-inventory-item [db {serial-number :serial-number
                               id            :id}]
+  {:pre [(or serial-number id)]}
   (let [id (to-long id)]
     (->> (cond id
                (d/pull db ["*"] id)
@@ -226,19 +227,27 @@
                (keyword?->string v)]))
        (into {})))
 
-(defn set-user-of-inventory-item [conn {inventory-item-id :inventory-item-id
-                                        new-user-id       :new-user-id}]
+(defn instant-of-transact-result
+  [transact-result]
+  (->> @transact-result
+       (:tx-data)
+       (filter (fn [datom]
+                 (inst? (:v datom))))
+       (first)
+       (:v)))
+
+(defn set-user-of-inventory-item [conn {inventory-item-id            :inventory-item-id
+                                        inventory-item-serial-number :inventory-item-serial-number
+                                        new-user-id                  :new-user-id}]
+  {:pre [(or inventory-item-id inventory-item-serial-number)]}
   (let [inventory-item-id (to-long inventory-item-id)
         new-user-id       (to-long new-user-id)]
-    {:tx-instant (->> @(d/transact conn [{:db/id               inventory-item-id
-                                          :inventory-item/user new-user-id}])
-                      (:tx-data)
-                      (filter (fn [datom]
-                                (inst? (:v datom))))
-                      (first)
-                      (:v))}))
-
-
+    {:tx-instant (instant-of-transact-result
+                   (d/transact conn [(merge (cond inventory-item-id
+                                                  {:db/id inventory-item-id}
+                                                  inventory-item-serial-number
+                                                  {:inventory-item/serial-number inventory-item-serial-number})
+                                            {:inventory-item/user new-user-id})]))}))
 
 (comment
   (d/q '[:find ?e ?name ?lname ?computer                    ;(pull ?ce ["*"])

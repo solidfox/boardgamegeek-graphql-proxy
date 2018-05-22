@@ -116,6 +116,7 @@
 
  :mutations  {:setUserOfInventoryItem {:type :Reallocation
                                        :args {:inventory_item_id {:type ID}
+                                              :inventory_item_serial_number {:type String}
                                               :new_user_id       {:type ID}}
                                        :resolve :set-user-of-inventory-item}}}
 
