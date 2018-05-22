@@ -68,6 +68,8 @@
                                                                   :resolve :resolve-computer}
                                                  :new_user       {:type    :Person
                                                                   :resolve :resolve-person}
+                                                 :old_user       {:type    :Person
+                                                                  :resolve :resolve-old-user}
                                                  :comment        {:type String}}}
 
               :PurchaseDetails    {:description "Details about how a computer was acquired."
@@ -110,4 +112,10 @@
                           :args        {:id            {:type ID}
                                         :email         {:type String}
                                         :schoolsoft_id {:type String}}
-                          :resolve     :resolve-person}}}
+                          :resolve     :resolve-person}}
+
+ :mutations  {:setUserOfInventoryItem {:type :Reallocation
+                                       :args {:inventory_item_id {:type ID}
+                                              :new_user_id       {:type ID}}
+                                       :resolve :set-user-of-inventory-item}}}
+

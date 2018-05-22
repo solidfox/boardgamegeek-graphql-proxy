@@ -38,11 +38,9 @@
 
 (defn ^:private resolve-person
   [context args parent]
-  (util/spy parent)
-  (-> (if-let [person-id (or (util/spy (get-in parent [:user ":db/id"]))
+  (-> (if-let [person-id (or (get-in parent [:user ":db/id"])
                              (get-in parent [:new_user])
-                             (try (Long. (:id args))
-                                  (catch Exception e nil)))]
+                             (:id args))]
         (db/get-person (d/db (:db-connection context)) {:person-db-id person-id})
         (if-let [person-email (:email args)]
           (db/get-person (d/db (:db-connection context)) {:person-email person-email})))
@@ -67,12 +65,8 @@
 (defn ^:private resolve-computer
   [context args parent]
   (db/get-inventory-item (d/db (:db-connection context))
-                         {:id
-                          ; Prioritize the passed id argument over parent id.
-                          (if-let [id (:id args)] (Long. id)
-                                                  (:inventory_item parent))
-                          :serial-number
-                          (:serial_number args)}))
+                         {:id            (or (:id args) (:inventory_item parent))
+                          :serial-number (:serial_number args)}))
 
 (defn ^:private resolve-inventory-history
   [context args parent]
@@ -84,18 +78,39 @@
   (db/get-inventory-history-of-person (d/db (:db-connection context))
                                       {:person-db-id (:id parent)}))
 
+(defn ^:private set-user-of-inventory-item
+  [context {inventory-item-id :inventory_item_id
+            new-user-id       :new_user_id} _parent]
+  (let [conn        (:db-connection context)
+        old-user-id (:user (db/get-inventory-item (d/db conn)
+                                                  {:id inventory-item-id}))
+        instant     (:tx-instant (db/set-user-of-inventory-item conn
+                                                                {:inventory-item-id inventory-item-id
+                                                                 :new-user-id       new-user-id}))]
+    {:instant        instant
+     :old_user       old-user-id
+     :new_user       new-user-id
+     :inventory_item inventory-item-id}))
+
+(defn ^:private resolve-person-history
+  [context args parent]
+  (db/get-inventory-history-of-person (d/db (:db-connection context))
+                                      {:person-db-id (:id parent)}))
+
 (defn inventist-schema
   []
   (-> (io/resource "inventist-schema.edn")
       slurp
       edn/read-string
-      (attach-resolvers {:resolve-documents         identity ;TODO
-                         :resolve-groups            resolve-groups
-                         :resolve-person            resolve-person
-                         :query-people              query-people
-                         :resolve-person-history    resolve-person-history
-                         :resolve-computer          resolve-computer
-                         :resolve-computers         resolve-computers
-                         :query-computers           query-computers
-                         :resolve-inventory-history resolve-inventory-history})
+      (attach-resolvers {:resolve-documents          identity ;TODO
+                         :resolve-groups             resolve-groups
+                         :resolve-person             resolve-person
+                         :query-people               query-people
+                         :resolve-person-history     resolve-person-history
+                         :resolve-computer           resolve-computer
+                         :resolve-computers          resolve-computers
+                         :query-computers            query-computers
+                         :resolve-inventory-history  resolve-inventory-history
+                         :set-user-of-inventory-item set-user-of-inventory-item
+                         :resolve-old-user           identity}) ;TODO
       schema/compile))

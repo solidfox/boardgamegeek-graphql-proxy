@@ -20,6 +20,12 @@
 (def test-uri
   "datomic:mem://test")
 
+(defn to-long [x]
+  (try (Long. x)
+       (catch Exception e
+         (println (str "Could not convert " x " to Long: " e))
+         nil)))
+
 (defn clear-database! [uri]
   (d/delete-database uri)
   (d/create-database uri))
@@ -85,7 +91,7 @@
 
 (defn get-person [db {person-email :person-email
                       person-eid   :person-db-id}]
-  (->> (if-let [person-eid person-eid]
+  (->> (if-let [person-eid (to-long person-eid)]
          (d/pull db ["*"] person-eid)
          (when-let [person-email person-email]
            (ffirst
@@ -135,19 +141,20 @@
 
 (defn get-inventory-item [db {serial-number :serial-number
                               id            :id}]
-  (->> (cond id
-             (d/pull db ["*"] id)
-             serial-number
-             (ffirst
-               (d/q '[:find (pull ?e ["*"])
-                      :in $ ?serial-number
-                      :where
-                      [?e :inventory-item/serial-number ?serial-number]]
-                    db serial-number)))
-       (map (fn [[k v]]
-              [(pulled-keyword->graphql-keyword k)
-               (keyword?->string v)]))
-       (into {})))
+  (let [id (to-long id)]
+    (->> (cond id
+               (d/pull db ["*"] id)
+               serial-number
+               (ffirst
+                 (d/q '[:find (pull ?e ["*"])
+                        :in $ ?serial-number
+                        :where
+                        [?e :inventory-item/serial-number ?serial-number]]
+                      db serial-number)))
+         (map (fn [[k v]]
+                [(pulled-keyword->graphql-keyword k)
+                 (keyword?->string v)]))
+         (into {}))))
 
 (defn query-inventory [db {search-terms :search_terms}]
   (->> (d/q (if search-terms
@@ -219,6 +226,20 @@
                (keyword?->string v)]))
        (into {})))
 
+(defn set-user-of-inventory-item [conn {inventory-item-id :inventory-item-id
+                                        new-user-id       :new-user-id}]
+  (let [inventory-item-id (to-long inventory-item-id)
+        new-user-id       (to-long new-user-id)]
+    {:tx-instant (->> @(d/transact conn [{:db/id               inventory-item-id
+                                          :inventory-item/user new-user-id}])
+                      (:tx-data)
+                      (filter (fn [datom]
+                                (inst? (:v datom))))
+                      (first)
+                      (:v))}))
+
+
+
 (comment
   (d/q '[:find ?e ?name ?lname ?computer                    ;(pull ?ce ["*"])
          :where
@@ -255,7 +276,11 @@
   (get-person (d/db (d/connect in-memory-uri)) {:person-email "daniel.schlaug@gripsholmsskolan.se"})
   (get-inventory-of-person (d/db (d/connect in-memory-uri)) {:person-db-id person-eid})
   (get-inventory-history-of-item (d/db (d/connect in-memory-uri)) {:inventory-item-db-id 17592186046563})
-  (get-inventory-history-of-person (d/db (d/connect in-memory-uri)) {:person-db-id person-eid}))
+  (get-inventory-history-of-person (d/db (d/connect in-memory-uri)) {:person-db-id person-eid})
+  (set-user-of-inventory-item (d/connect in-memory-uri) {:inventory-item-id 17592186046563
+                                                         :new-user-id       person-eid}))
+
+
 
 
 
