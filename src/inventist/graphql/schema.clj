@@ -91,17 +91,37 @@
             new-user-id                  :new_user_id} _parent]
   (let [conn           (:db-connection context)
         inventory-item (db/get-inventory-item (d/db conn)
-                          {:id            inventory-item-id
-                           :serial-number inventory-item-serial-number})
+                                              {:id            inventory-item-id
+                                               :serial-number inventory-item-serial-number})
         old-user-id    (get-in inventory-item [:user ":db/id"])]
     {:instant        (:tx-instant
                        (db/set-user-of-inventory-item conn
-                          {:inventory-item-id            inventory-item-id
-                           :inventory-item-serial-number inventory-item-serial-number
-                           :new-user-id                  new-user-id}))
+                                                      {:inventory-item-id            inventory-item-id
+                                                       :inventory-item-serial-number inventory-item-serial-number
+                                                       :new-user-id                  new-user-id}))
      :old_user       old-user-id
      :new_user       new-user-id
      :inventory_item (:id inventory-item)}))
+
+(defn ^:private report_issue_with_inventory_item
+  [context
+   {item_id     :item_id
+    category    :category
+    description :description
+    cause       :cause
+    photos      :photos}
+   _parent]
+  (let [conn           (:db-connection context)
+        inventory-item (db/get-inventory-item (d/db conn)
+                                              {:id item_id})]
+    ; TODO
+    {:id               nil
+     :inventory_item   inventory-item
+     :reporting_person nil
+     :category         nil
+     :description      nil
+     :cause            nil
+     :photos           nil}))
 
 (defn ^:private resolve-person-history
   [context args parent]
@@ -113,16 +133,17 @@
   (-> (io/resource "inventist-schema.edn")
       slurp
       edn/read-string
-      (attach-resolvers {:resolve-documents          identity ;TODO
-                         :resolve-groups             resolve-groups
-                         :resolve-person             resolve-person
-                         :query-people               query-people
-                         :resolve-person-history     resolve-person-history
-                         :resolve-computer           resolve-computer
-                         :resolve-computers          resolve-computers
-                         :query-computers            query-computers
-                         :resolve-inventory-history  resolve-inventory-history
-                         :set-user-of-inventory-item set-user-of-inventory-item
-                         :resolve-new-user           resolve-new-user
-                         :resolve-old-user           resolve-old-user})
+      (attach-resolvers {:resolve-documents                identity ;TODO
+                         :resolve-groups                   resolve-groups
+                         :resolve-person                   resolve-person
+                         :query-people                     query-people
+                         :resolve-person-history           resolve-person-history
+                         :resolve-computer                 resolve-computer
+                         :resolve-computers                resolve-computers
+                         :query-computers                  query-computers
+                         :report_issue_with_inventory_item report_issue_with_inventory_item
+                         :resolve-inventory-history        resolve-inventory-history
+                         :set-user-of-inventory-item       set-user-of-inventory-item
+                         :resolve-new-user                 resolve-new-user
+                         :resolve-old-user                 resolve-old-user})
       schema/compile))

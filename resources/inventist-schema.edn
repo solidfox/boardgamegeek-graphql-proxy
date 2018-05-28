@@ -1,122 +1,153 @@
-{:interfaces {:Entity {:description "A Standard entity with id."
-                       :fields      {:id {:type (non-null ID)}}}}
+{:interfaces    {:Entity {:description "A Standard entity with id."
+                          :fields      {:id {:type (non-null ID)}}}}
 
 
- :unions     {:InventoryHistoryItem {:members
-                                     [:Reallocation]}
-              :PersonHistoryItem    {:members
-                                     [:Reallocation]}}
+ :unions        {:InventoryHistoryItem {:members
+                                        [:Reallocation]}
+                 :PersonHistoryItem    {:members
+                                        [:Reallocation]}}
+
+ :objects       {:Company            {:description "A company that may publish a Board Game."
+                                      :implements  [:Entity]
+                                      :fields      {:id          {:type (non-null ID)}
+                                                    :name        {:type String}
+                                                    :description {:type String}}}
+
+                 :Person             {:description "Person who may have inventory."
+                                      :implements  [:Entity]
+                                      :fields      {:id         {:type (non-null ID)}
+                                                    :occupation {:type        String
+                                                                 :description "E.g. staff or student."}
+                                                    :groups     {:type    (list :Group)
+                                                                 :resolve :resolve-groups}
+                                                    :photo_url  {:type String}
+                                                    :first_name {:type String}
+                                                    :last_name  {:type String}
+                                                    :gender     {:type String}
+                                                    :email      {:type (list String)}
+                                                    :username   {:type String}
+                                                    :phone      {:type String}
+                                                    :address    {:type String}
+                                                    :inventory  {:type    (list :Computer)
+                                                                 :resolve :resolve-computers}
+                                                    :history    {:type    (list :PersonHistoryItem)
+                                                                 :resolve :resolve-person-history}}}
+
+                 :Group              {:description "A group of persons."
+                                      :implements  [:Entity]
+                                      :fields      {:id           {:type (non-null ID)}
+                                                    :name         {:type String}
+                                                    :description  {:type String}
+                                                    :school_class {:type Boolean}
+                                                    :active       {:type Boolean}}}
+
+                 :Computer           {:description "Details about a computer."
+                                      :fields      {:id               {:type (non-null ID)}
+                                                    :class            {:type String
+                                                                       :description
+                                                                             "E. g. laptop / smartphone / tablet etc..."}
+                                                    :name             {:type String}
+                                                    :release_date     {:type Int}
+                                                    :brand            {:type String}
+                                                    :model_name       {:type String}
+                                                    :model_identifier {:type String}
+                                                    :color            {:type String}
+                                                    :serial_number    {:type String}
+                                                    :user             {:type    :Person
+                                                                       :resolve :resolve-person}
+                                                    :image_url        {:type String}
+                                                    :history          {:type    (list :InventoryHistoryItem)
+                                                                       :resolve :resolve-inventory-history}
+                                                    :purchase_details {:type :PurchaseDetails}}}
+
+                 :Reallocation       {:description "Describes a reallocation of an inventory item."
+                                      :fields      {:instant        {:type String}
+                                                    :inventory_item {:type    :Computer
+                                                                     :resolve :resolve-computer}
+                                                    :new_user       {:type    :Person
+                                                                     :resolve :resolve-new-user}
+                                                    :old_user       {:type    :Person
+                                                                     :resolve :resolve-old-user}
+                                                    :comment        {:type String}}}
+
+                 :PurchaseDetails    {:description "Details about how a computer was acquired."
+                                      :fields      {:purchase_id       {:type (non-null ID)}
+                                                    :documents         {:type    (list :Document)
+                                                                        :resolve :resolve-documents}
+                                                    :supplier          {:type :Company}
+                                                    :delivery_date     {:type Int}
+                                                    :insurance_expires {:type Int}
+                                                    :warranty_expires  {:type Int}}}
+
+                 :InventoryItemEvent {:description "Something that happened to an inventory item. Such as being reassigned, repaired or decommissioned."
+                                      :fields      {:person    {:type :Person}
+                                                    :date_time {:type Int}
+                                                    :comment   {:type String}}}
+
+                 :Document           {:description "A file."
+                                      :fields      {:id        {:type ID}
+                                                    :file_type {:type String}
+                                                    :name      {:type String}
+                                                    :comment   {:type String}
+                                                    :url       {:type String}}}
+                 :IssueReport        {:description "A report detailing an issue with an inventory item."
+                                      :fields      {:id               {:type ID}
+                                                    :inventory_item   {:type :Computer}
+                                                    :reporting_person {:type :Person}
+                                                    :category         {:description "The category of the issue. E.g. Battery problems, Physical damage, Water damage etc."
+                                                                       :type        String}
+                                                    :description      {:decription "A detailed description of the issue."
+                                                                       :type       String}
+                                                    :cause            {:description "The suspected cause of the issue. E.g. Unknown, Water exposure, Accident, Factory fault"
+                                                                       :type        String}
+                                                    :photos           {:type (list :File)}}}
+                 :File               {:fields {:name        {:type String}
+                                               :description {:type String}
+                                               :file_type   {:type String}
+                                               :url         {:type String}}}}
 
 
 
- :objects    {:Company            {:description "A company that may publish a Board Game."
-                                   :implements  [:Entity]
-                                   :fields      {:id          {:type (non-null ID)}
-                                                 :name        {:type String}
-                                                 :description {:type String}}}
+ :queries       {:computers {:type        (list :Computer)
+                             :description "Retrieve a filtered list of computers."
+                             :args        {:search_terms {:type (list String)}}
+                             :resolve     :query-computers}
+                 :computer  {:type        :Computer
+                             :description "Retrieve a single computer."
+                             :args        {:id            {:type ID}
+                                           :serial_number {:type String}}
+                             :resolve     :resolve-computer}
+                 :people    {:type        (list :Person)
+                             :description "Retrieve a filtered list of people."
+                             :args        {:groups {:type (list String)}}
+                             :resolve     :query-people}
+                 :person    {:type        :Person
+                             :description "Retrieve a single person."
+                             :args        {:id            {:type ID}
+                                           :email         {:type String}
+                                           :schoolsoft_id {:type String}}
+                             :resolve     :resolve-person}}
 
-              :Person             {:description "Person who may have inventory."
-                                   :implements  [:Entity]
-                                   :fields      {:id         {:type (non-null ID)}
-                                                 :occupation {:type        String
-                                                              :description "E.g. staff or student."}
-                                                 :groups     {:type    (list :Group)
-                                                              :resolve :resolve-groups}
-                                                 :photo_url  {:type String}
-                                                 :first_name {:type String}
-                                                 :last_name  {:type String}
-                                                 :gender     {:type String}
-                                                 :email      {:type (list String)}
-                                                 :username   {:type String}
-                                                 :phone      {:type String}
-                                                 :address    {:type String}
-                                                 :inventory  {:type    (list :Computer)
-                                                              :resolve :resolve-computers}
-                                                 :history    {:type    (list :PersonHistoryItem)
-                                                              :resolve :resolve-person-history}}}
+ :input-objects {:InputFile {:fields {:name        {:type String}
+                                      :description {:type String}
+                                      :file_type   {:type String}
+                                      :data        {:type String}}}}
 
-              :Group              {:description "A group of persons."
-                                   :implements  [:Entity]
-                                   :fields      {:id           {:type (non-null ID)}
-                                                 :name         {:type String}
-                                                 :description  {:type String}
-                                                 :school_class {:type Boolean}
-                                                 :active       {:type Boolean}}}
+ :mutations     {:set_user_of_inventory_item       {:type    :Reallocation
+                                                    :resolve :set-user-of-inventory-item
+                                                    :args    {:inventory_item_id            {:type ID}
+                                                              :inventory_item_serial_number {:type String}
+                                                              :new_user_id                  {:type ID}}}
+                 :report_issue_with_inventory_item {:type    :IssueReport
+                                                    :resolve :report_issue_with_inventory_item
+                                                    :args    {:item_id     {:description "The id of the inventory item that the report is about."
+                                                                            :type        (non-null ID)}
+                                                              :category    {:description "The category of the issue. E.g. Battery problems, Physical damage, Water damage etc."
+                                                                            :type        String}
+                                                              :description {:decription "A detailed description of the issue."
+                                                                            :type       String}
+                                                              :cause       {:description "The suspected cause of the issue. E.g. Unknown, Water exposure, Accident, Factory fault"
+                                                                            :type        String}
+                                                              :photos      {:type (list :InputFile)}}}}}
 
-              :Computer           {:description "Details about a computer."
-                                   :fields      {:id               {:type (non-null ID)}
-                                                 :class            {:type String
-                                                                    :description
-                                                                          "E. g. laptop / smartphone / tablet etc..."}
-                                                 :name             {:type String}
-                                                 :release_date     {:type Int}
-                                                 :brand            {:type String}
-                                                 :model_name       {:type String}
-                                                 :model_identifier {:type String}
-                                                 :color            {:type String}
-                                                 :serial_number    {:type String}
-                                                 :user             {:type    :Person
-                                                                    :resolve :resolve-person}
-                                                 :image_url        {:type String}
-                                                 :history          {:type    (list :InventoryHistoryItem)
-                                                                    :resolve :resolve-inventory-history}
-                                                 :purchase_details {:type :PurchaseDetails}}}
-
-              :Reallocation       {:description "Describes a reallocation of an inventory item."
-                                   :fields      {:instant        {:type String}
-                                                 :inventory_item {:type    :Computer
-                                                                  :resolve :resolve-computer}
-                                                 :new_user       {:type    :Person
-                                                                  :resolve :resolve-new-user}
-                                                 :old_user       {:type    :Person
-                                                                  :resolve :resolve-old-user}
-                                                 :comment        {:type String}}}
-
-              :PurchaseDetails    {:description "Details about how a computer was acquired."
-                                   :fields      {:purchase_id       {:type (non-null ID)}
-                                                 :documents         {:type    (list :Document)
-                                                                     :resolve :resolve-documents}
-                                                 :supplier          {:type :Company}
-                                                 :delivery_date     {:type Int}
-                                                 :insurance_expires {:type Int}
-                                                 :warranty_expires  {:type Int}}}
-
-              :InventoryItemEvent {:description "Something that happened to an inventory item. Such as being reassigned, repaired or decommissioned."
-                                   :fields      {:person    {:type :Person}
-                                                 :date_time {:type Int}
-                                                 :comment   {:type String}}}
-
-              :Document           {:description "A file."
-                                   :fields      {:id        {:type ID}
-                                                 :file_type {:type String}
-                                                 :name      {:type String}
-                                                 :comment   {:type String}
-                                                 :url       {:type String}}}}
-
-
- :queries    {:computers {:type        (list :Computer)
-                          :description "Retrieve a filtered list of computers."
-                          :args        {:search_terms {:type (list String)}}
-                          :resolve     :query-computers}
-              :computer  {:type        :Computer
-                          :description "Retrieve a single computer."
-                          :args        {:id            {:type ID}
-                                        :serial_number {:type String}}
-                          :resolve     :resolve-computer}
-              :people    {:type        (list :Person)
-                          :description "Retrieve a filtered list of people."
-                          :args        {:groups {:type (list String)}}
-                          :resolve     :query-people}
-              :person    {:type        :Person
-                          :description "Retrieve a single person."
-                          :args        {:id            {:type ID}
-                                        :email         {:type String}
-                                        :schoolsoft_id {:type String}}
-                          :resolve     :resolve-person}}
-
- :mutations  {:set_user_of_inventory_item {:type :Reallocation
-                                           :args {:inventory_item_id {:type ID}
-                                                  :inventory_item_serial_number {:type String}
-                                                  :new_user_id       {:type ID}}
-                                           :resolve :set-user-of-inventory-item}}}
 
