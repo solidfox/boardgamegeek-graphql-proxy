@@ -201,7 +201,7 @@
   (->> (d/q '[:find ?inventory-item-eid ?person-eid ?instant
               :in $ ?inventory-item-eid
               :where
-              [?inventory-item-eid :inventory-item/user ?person-eid ?tx]
+              [?inventory-item-eid :inventory-item/user ?person-eid ?tx true]
               [?tx :db/txInstant ?instant]]
             (d/history db)
             id)
@@ -213,7 +213,7 @@
   (->> (d/q '[:find ?inventory-item-eid ?person-eid ?instant
               :in $ ?person-eid
               :where
-              [?inventory-item-eid :inventory-item/user ?person-eid ?tx]
+              [?inventory-item-eid :inventory-item/user ?person-eid ?tx true]
               [?tx :db/txInstant ?instant]]
             (d/history db)
             id)
