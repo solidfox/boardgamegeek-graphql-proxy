@@ -37,13 +37,14 @@
                   {:group-db-id (get group ":db/id")})))
 
 (defn ^:private resolve-person
-  [context args parent]
+  [{db-connection :db-connection
+    base-url      :base-url} args parent]
   (-> (if-let [person-id (or (get-in parent [:user ":db/id"])
                              (:id args))]
-        (db/get-person (d/db (:db-connection context)) {:person-db-id person-id})
+        (db/get-person (d/db db-connection) {:person-db-id person-id})
         (if-let [person-email (:email args)]
-          (db/get-person (d/db (:db-connection context)) {:person-email person-email})))
-      (add-photo-base-url (:files-base-url context))))
+          (db/get-person (d/db db-connection) {:person-email person-email})))
+      (add-photo-base-url base-url)))
 
 (defn ^:private resolve-new-user
   [context _args parent]
@@ -55,10 +56,11 @@
 
 
 (defn ^:private query-people
-  [context args _value]
-  (->> (db/get-people (d/db (:db-connection context)) args)
+  [{db-connection :db-connection
+    base-url      :base-url} args _value]
+  (->> (db/get-people (d/db db-connection) args)
        (map (fn [person]
-              (add-photo-base-url person (:files-base-url context))))))
+              (add-photo-base-url person base-url)))))
 
 (defn ^:private query-computers
   [context args _value]

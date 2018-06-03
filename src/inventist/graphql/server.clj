@@ -7,14 +7,20 @@
             [clojure.data.json :as json]
             [com.walmartlabs.lacinia :refer [execute]]
             [ring.util.response :as response]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [inventist.util.core :as util]
+            [io.pedestal.interceptor.chain :as interceptor.chain]
+            [io.pedestal.http.ring-middlewares :refer [multipart-params]]
+            [ring.middleware.multipart-params.temp-file :refer [temp-file-store]]))
+
+(def state-atom (atom {:db-connection (db/import-fresh-database! db/in-memory-uri)}))
 
 (defn ^:private index-handler
   "Handles the index request as if it were /graphiql/index.html."
   [request]
   (response/redirect "/index.html"))
 
-(defn variable-map
+(defn http-get-variable-map
   "Reads the `variables` query parameter, which contains a JSON string
   for any and all GraphQL variables to be associated with this request.
 
@@ -25,39 +31,93 @@
       (json/read-str vars :key-fn keyword)
       {})))
 
-(defn extract-query
-  [request]
-  (case (:request-method request)
-    :get (get-in request [:query-params :query])
-    :post (slurp (:body request))
-    :else ""))
+(def ^:private graphql-post-handler
+  {:name  ::graphql-post-handler
+   :enter
+   (fn [{{multipart-params :multipart-params
+          content-type     :content-type
+          body             :body} :request
+         :as                      context}]
+     (if (= content-type "application/graphql")
+       (assoc context ::graphql-query (slurp body))
+       (let [json-input (if multipart-params
+                          (json/read-str (get multipart-params "operations") :key-fn keyword)
+                          (json/read-str (slurp body) :key-fn keyword))
+             json-operations (if (map? json-input)
+                               [json-input]
+                               json-input)]
+         (merge
+           (assoc context ::graphql-query (:query (first json-operations))
+                          ::graphql-variables (or (:variables (first json-operations)) {}))
+           (when multipart-params
+             {::graphql-file-map (json/read-str (get multipart-params "map") :key-fn keyword)})))))})
+
+
+
+(def ^:private graphql-get-handler
+  {:name  ::graphql-get-handler
+   :enter (fn [{request :request
+                :as     context}]
+            (assoc context ::graphql-query (get-in request [:query-params :query])
+                           ::graphql-variables (http-get-variable-map request)))})
+
+(def ^:private graphql-query-handler
+  {:name  ::graphql-query-handler
+   :enter (fn
+            [{query           ::graphql-query
+              vars            ::graphql-variables
+              graphql-context ::graphql-context
+              compiled-schema ::graphql-schema
+              :as             context}]
+            (let [result (execute compiled-schema query vars graphql-context)
+                  status (if (-> result :errors seq)
+                           400
+                           200)]
+              (assoc context :response
+                             {:status  status
+                              :headers {"Content-Type" "application/json"}
+                              :body    (json/write-str result)})))})
 
 (defn ^:private graphql-handler
-  "Accepts a GraphQL query via GET or POST, and executes the query.
-  Returns the result as text/json."
   [compiled-schema]
-  (let [app-context {:db-connection (db/import-fresh-database! db/in-memory-uri)
-                     :cache (atom {})}]
-    (fn [request]
-      (let [vars   (variable-map request)
-            query  (extract-query request)
-            request-base-url (subs (str (:scheme request) "://" (:server-name request) ":" (:server-port request)) 1)
-            request-context (assoc app-context :files-base-url request-base-url)
-            result (execute compiled-schema query vars request-context)
-            status (if (-> result :errors seq)
-                     400
-                     200)]
-        {:status  status
-         :headers {"Content-Type" "application/json"}
-         :body    (json/write-str result)}))))
+  {:name  ::graphql-handler
+   :enter (fn [{request :request
+                :as     context}]
+            (as-> context $
+                  (assoc $ ::graphql-schema compiled-schema)
+                  (case (:request-method request)
+                    :get
+                    (interceptor.chain/enqueue $ [graphql-get-handler])
+                    :post
+                    (cond-> $
+                            (str/starts-with? (:content-type request) "multipart/form-data")
+                            (interceptor.chain/enqueue*
+                              (multipart-params
+                                {:store (temp-file-store {:expires-in 7200})}))
+                            true
+                            (interceptor.chain/enqueue* graphql-post-handler)))
+                  (interceptor.chain/enqueue* $ graphql-query-handler)))})
+
+(def ^:private add-base-url
+  {:name  ::add-base-url
+   :enter (fn [{request :request
+                :as     context}]
+            (assoc-in context [::graphql-context :base-url]
+                      (subs (str (:scheme request) "://" (:server-name request) ":" (:server-port request))
+                            1)))})
+
+(def ^:private add-database
+  {:name  ::add-database
+   :enter (fn [context]
+            (assoc-in context [::graphql-context :db-connection] (:db-connection @state-atom)))})
 
 (defn ^:private routes
   [compiled-schema]
-  (let [query-handler (graphql-handler compiled-schema)]
+  (let [handle-graph-ql (graphql-handler compiled-schema)]
     (route/expand-routes
       #{["/" :get index-handler :route-name :graphiql-ide-index]
-        ["/graphql" :post query-handler :route-name :graphql-post]
-        ["/graphql" :get query-handler :route-name :graphql-get]})))
+        ["/graphql" :post [add-base-url add-database handle-graph-ql] :route-name :graphql-post]
+        ["/graphql" :get [add-base-url add-database handle-graph-ql] :route-name :graphql-get]})))
 
 (defn pedestal-server
   "Creates and returns server instance, ready to be started."
