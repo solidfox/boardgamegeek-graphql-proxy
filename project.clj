@@ -3,6 +3,7 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [io.aviso/logging "0.2.0"]
                  [com.walmartlabs/lacinia "0.25.0"]
+                 [com.walmartlabs/lacinia-pedestal "0.7.0"]
                  [clj-http "3.8.0"]
                  [org.clojure/data.json "0.2.6"]
                  [org.clojure/data.xml "0.0.8"]

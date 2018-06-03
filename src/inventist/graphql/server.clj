@@ -6,6 +6,7 @@
             [clojure.java.io :as io]
             [clojure.data.json :as json]
             [com.walmartlabs.lacinia :refer [execute]]
+            [com.walmartlabs.lacinia.pedestal :as lacinia-pedestal]
             [ring.util.response :as response]
             [clojure.string :as str]
             [inventist.util.core :as util]
@@ -32,25 +33,11 @@
       {})))
 
 (def ^:private graphql-post-handler
-  {:name  ::graphql-post-handler
+  {:name ::graphql-post-handler
    :enter
-   (fn [{{multipart-params :multipart-params
-          content-type     :content-type
-          body             :body} :request
-         :as                      context}]
-     (if (= content-type "application/graphql")
-       (assoc context ::graphql-query (slurp body))
-       (let [json-input (if multipart-params
-                          (json/read-str (get multipart-params "operations") :key-fn keyword)
-                          (json/read-str (slurp body) :key-fn keyword))
-             json-operations (if (map? json-input)
-                               [json-input]
-                               json-input)]
-         (merge
-           (assoc context ::graphql-query (:query (first json-operations))
-                          ::graphql-variables (or (:variables (first json-operations)) {}))
-           (when multipart-params
-             {::graphql-file-map (json/read-str (get multipart-params "map") :key-fn keyword)})))))})
+         (fn [{request :request
+               :as     context}]
+           (assoc context :request (merge request (lacinia-pedestal/extract-query request))))})
 
 
 
@@ -58,17 +45,16 @@
   {:name  ::graphql-get-handler
    :enter (fn [{request :request
                 :as     context}]
-            (assoc context ::graphql-query (get-in request [:query-params :query])
-                           ::graphql-variables (http-get-variable-map request)))})
+            (assoc context :request (merge request (lacinia-pedestal/extract-query request))))})
 
 (def ^:private graphql-query-handler
   {:name  ::graphql-query-handler
    :enter (fn
-            [{query           ::graphql-query
-              vars            ::graphql-variables
-              graphql-context ::graphql-context
-              compiled-schema ::graphql-schema
-              :as             context}]
+            [{{query :graphql-query
+               vars  :graphql-vars} :request
+              graphql-context       ::graphql-context
+              compiled-schema       ::graphql-schema
+              :as                   context}]
             (let [result (execute compiled-schema query vars graphql-context)
                   status (if (-> result :errors seq)
                            400
@@ -95,7 +81,8 @@
                               (multipart-params
                                 {:store (temp-file-store {:expires-in 7200})}))
                             true
-                            (interceptor.chain/enqueue* graphql-post-handler)))
+                            (interceptor.chain/enqueue* lacinia-pedestal/body-data-interceptor
+                                                        graphql-post-handler)))
                   (interceptor.chain/enqueue* $ graphql-query-handler)))})
 
 (def ^:private add-base-url
