@@ -39,6 +39,10 @@
                            :db/valueType   :db.type/string
                            :db/cardinality :db.cardinality/one
                            :db/unique      :db.unique/identity}
+                          {:db/ident       :group/email
+                           :db/valueType   :db.type/string
+                           :db/cardinality :db.cardinality/many
+                           :db/unique      :db.unique/identity}
                           {:db/ident       :group/name
                            :db/valueType   :db.type/string
                            :db/cardinality :db.cardinality/one}

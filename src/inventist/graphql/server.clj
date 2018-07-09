@@ -116,6 +116,7 @@
                        ::http/type            :jetty
                        ::http/join?           false
                        ::http/allowed-origins {:creds true :allowed-origins ["http://localhost:3449"
+                                                                             "http://localhost:3450"
                                                                              "http://localhost:8888"
                                                                              "http://inventory.gripsholmsskolan.se"
                                                                              "http://backend.inventory.gripsholmsskolan.se:8888"]}}))

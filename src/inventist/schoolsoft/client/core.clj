@@ -6,13 +6,24 @@
 (comment "Here people data is converted to Datomic transactions from tsv files that have been redacted from"
          "this git-repo for natural reasons.")
 
+(def staff-group-temp-id "personal-group-temp-id")
+
 (defn schoolsoft-groups->db-people-groups [schoolsoft-groups]
   (->> schoolsoft-groups
        (map (fn [group] {:group/schoolsoft-id (:id group)
                          :group/name          (:name group)
                          :group/description   (:description group)
                          :group/school-class  (= "1" (:classtype group))
-                         :group/active        (= "1" (:active group))}))))
+                         :group/active        (= "1" (:active group))}))
+       (concat [{:group/name         "IT"
+                 :group/description  "People related to the school's IT administration."
+                 :group/school-class false
+                 :group/active       true}
+                {:db/id              staff-group-temp-id
+                 :group/name         "Personal"
+                 :group/description  "Staff of the school."
+                 :group/school-class false
+                 :group/active       true}])))
 
 (defn schoolsoft-students->db-persons [schoolsoft-students]
   (->> schoolsoft-students
@@ -48,6 +59,7 @@
                     email-map (when (not-empty email)
                                 {:person/email email})]
                 (merge {:person/schoolsoft-id (str "s" (:id staff))
+                        :person/groups        [staff-group-temp-id]
                         :person/first-name    (:fname staff)
                         :person/last-name     (:lname staff)
                         :person/active        (= "1" (:active staff))
