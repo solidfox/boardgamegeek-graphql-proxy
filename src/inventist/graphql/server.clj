@@ -1,5 +1,6 @@
 (ns inventist.graphql.server
   (:require [inventist.db.core :as db]
+            [inventist.db.import :refer [import-fresh-database!]]
             [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.interceptor :refer [interceptor]]
@@ -14,7 +15,7 @@
             [io.pedestal.http.ring-middlewares :refer [multipart-params]]
             [ring.middleware.multipart-params.temp-file :refer [temp-file-store]]))
 
-(def state-atom (atom {:db-connection (db/import-fresh-database! db/in-memory-uri)}))
+(def state-atom (atom {:db-connection (import-fresh-database! db/in-memory-uri)}))
 
 (defn ^:private index-handler
   "Handles the index request as if it were /graphiql/index.html."

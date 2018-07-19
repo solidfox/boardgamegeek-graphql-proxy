@@ -56,7 +56,12 @@
                            :db/valueType   :db.type/boolean
                            :db/cardinality :db.cardinality/one}])
 
-(def person-schema [{:db/ident       :person/schoolsoft-id
+(def person-schema [{:db/ident       :person/person-number
+                     :db/valueType   :db.type/string
+                     :db/cardinality :db.cardinality/one
+                     :db/unique      :db.unique/identity}
+
+                    {:db/ident       :person/schoolsoft-id
                      :db/valueType   :db.type/string
                      :db/cardinality :db.cardinality/one
                      :db/unique      :db.unique/identity}
@@ -96,8 +101,8 @@
 
                     {:db/ident       :person/username
                      :db/valueType   :db.type/string
-                     :db/unique      :db.unique/identity
-                     :db/cardinality :db.cardinality/one}
+                     :db/cardinality :db.cardinality/one
+                     :db/unique      :db.unique/identity}
 
                     {:db/ident       :person/phone
                      :db/valueType   :db.type/string
