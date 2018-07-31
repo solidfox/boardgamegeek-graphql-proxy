@@ -2,10 +2,10 @@
                           :fields      {:id {:type (non-null ID)}}}}
 
 
- :unions        {:InventoryHistoryItem {:members
-                                        [:Reallocation]}
-                 :PersonHistoryItem    {:members
-                                        [:Reallocation]}}
+ :unions        {:InventoryHistoryItem {:members [:Reallocation]}
+                 :PersonHistoryItem    {:members [:Reallocation]}
+                 :CollectionItem       {:members [:Person
+                                                  :Computer]}}
 
  :objects       {:Company            {:description "A company that may publish a Board Game."
                                       :implements  [:Entity]
@@ -40,6 +40,14 @@
                                                     :description  {:type String}
                                                     :school_class {:type Boolean}
                                                     :active       {:type Boolean}}}
+
+                 :Collection         {:description "A collection of persons and/or items."
+                                      :implements  [:Entity]
+                                      :fields      {:id         {:type (non-null ID)}
+                                                    :name       {:type        String
+                                                                 :description "The human-readable name of the collection. Not required to be unique."}
+                                                    :members    {:type    (list :CollectionItem)
+                                                                 :resolve :resolve-collection-items}}}
 
                  :Computer           {:description "Details about a computer."
                                       :fields      {:id               {:type (non-null ID)}

@@ -34,12 +34,12 @@
   [context args person]
   (for [group (:groups person)]
     (db/get-group (d/db (:db-connection context))
-                  {:group-db-id (get group ":db/id")})))
+                  {:group-db-id (:id group)})))
 
 (defn ^:private resolve-person
   [{db-connection :db-connection
     base-url      :base-url} args parent]
-  (-> (if-let [person-id (or (get-in parent [:user ":db/id"])
+  (-> (if-let [person-id (or (get-in parent [:user :id])
                              (:id args))]
         (db/get-person (d/db db-connection) {:person-db-id person-id})
         (if-let [person-email (:email args)]
@@ -62,20 +62,32 @@
        (map (fn [person]
               (add-photo-base-url person base-url)))))
 
+(defn db-computer->graphql-computer [db-computer]
+  (merge (:generation db-computer)
+         (dissoc db-computer :generation)))
+
 (defn ^:private query-computers
   [context args _value]
-  (db/query-inventory (d/db (:db-connection context)) args))
+  (->> (db/query-inventory (d/db (:db-connection context)) args)
+       (map db-computer->graphql-computer)))
 
 (defn ^:private resolve-computers
   [context args parent]
-  (db/get-inventory-of-person (d/db (:db-connection context))
-                              {:person-db-id (:id parent)}))
+  (->> (db/get-inventory-of-person (d/db (:db-connection context))
+                                   {:person-db-id (:id parent)})
+       (map db-computer->graphql-computer)))
+
+(defn ^:private resolve-collection-items
+  [context _args collection]
+  (db/get-collection-items (d/db (:db-connection context))
+                           {:collection-id (:id collection)}))
 
 (defn ^:private resolve-computer
   [context args parent]
-  (db/get-inventory-item (d/db (:db-connection context))
-                         {:id            (or (:id args) (:inventory_item parent))
-                          :serial-number (:serial_number args)}))
+  (-> (db/get-inventory-item (d/db (:db-connection context))
+                             {:id            (or (:id args) (:inventory_item parent))
+                              :serial-number (:serial_number args)})
+      db-computer->graphql-computer))
 
 (defn ^:private resolve-inventory-history
   [context args parent]
@@ -95,7 +107,7 @@
         inventory-item (db/get-inventory-item (d/db conn)
                                               {:id            inventory-item-id
                                                :serial-number inventory-item-serial-number})
-        old-user-id    (get-in inventory-item [:user ":db/id"])]
+        old-user-id    (get-in inventory-item [:user :id])]
     {:instant        (:tx-instant
                        (db/set-user-of-inventory-item conn
                                                       {:inventory-item-id            inventory-item-id
@@ -147,5 +159,6 @@
                          :resolve-inventory-history        resolve-inventory-history
                          :set-user-of-inventory-item       set-user-of-inventory-item
                          :resolve-new-user                 resolve-new-user
-                         :resolve-old-user                 resolve-old-user})
+                         :resolve-old-user                 resolve-old-user
+                         :resolve-collection-items         resolve-collection-items})
       schema/compile))

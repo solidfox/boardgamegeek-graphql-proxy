@@ -50,26 +50,28 @@
   [k]
   (if (keyword? k)
     (-> k
-        (str)
-        (str/replace ":" ""))
+        (name))
     k))
 
-(defn pulled-keyword->graphql-keyword
+(defn db-keyword->graphql-keyword
   [k]
   (-> k
-      (str/replace ":" "")
+      (str)
       (str/split #"/")
-      second
+      last
       (str/replace "-" "_")
       keyword))
 
 (defn pulled-result->graphql-result
   [result]
-  (->> result
-       (map (fn [[k v]]
-              [(pulled-keyword->graphql-keyword k)
-               (keyword?->string v)]))
-       (into {})))
+  (if (map? result)
+    (->> result
+         (map (fn [[k v]]
+                [(db-keyword->graphql-keyword k)
+                 (pulled-result->graphql-result v)]))
+         (into {}))
+    (keyword?->string result)))
+
 
 (defn correct-person-photo-url [person]
   (if (not-empty (:photo_url person))
@@ -82,16 +84,13 @@
   (->> (if-let [person-eid (to-long person-eid)]
          (d/pull db ["*"] person-eid)
          (when-let [person-email person-email]
-           (ffirst
-             (d/q '[:find (pull ?e ["*"])
+           (first
+             (d/q '[:find [(pull ?e ["*"]) ...]
                     :in $ ?person-email
                     :where
                     [?e :person/email ?person-email]]
                   db person-email))))
-       (map (fn [[k v]]
-              [(pulled-keyword->graphql-keyword k)
-               (keyword?->string v)]))
-       (into {})
+       (pulled-result->graphql-result)
        (correct-person-photo-url)))
 
 (defn get-people
@@ -111,71 +110,74 @@
                      :first_name    "Per"}}))}
   [db & [{groups :groups}]]
   (->> (d/q (if groups
-              '[:find (pull ?e ["*"])
+              '[:find [(pull ?e ["*"]) ...]
                 :in $ [?group ...]
                 :where
                 [?e :person/schoolsoft-id]
                 [?e :person/groups ?group-eid]
                 (or [(= ?group ?group-eid)]
                     [?group-eid :group/name ?group])]
-              '[:find (pull ?e ["*"])
+              '[:find [(pull ?e ["*"]) ...]
                 :where
                 [?e :person/schoolsoft-id]])
             db
             groups)
-       (map first)
        (map pulled-result->graphql-result)
        (map correct-person-photo-url)))
 
-(defn get-inventory-item [db {serial-number :serial-number
-                              id            :id}]
+(defn query-pull-entire-inventory-item [entity-symbol]
+  `(~(symbol "pull") ~entity-symbol ["*" {:com.apple.product/generation ["*"]}]))
+
+(defn get-inventory-item
+  [db {serial-number :serial-number
+       id            :id}]
   {:pre [(or serial-number id)]}
   (let [id (to-long id)]
     (->> (cond id
-               (d/pull db ["*"] id)
+               (d/pull db ["*" {:com.apple.product/generation ["*"]}] id)
                serial-number
-               (ffirst
-                 (d/q '[:find (pull ?e ["*"])
-                        :in $ ?serial-number
-                        :where
-                        [?e :inventory-item/serial-number ?serial-number]]
-                      db serial-number)))
-         (map (fn [[k v]]
-                [(pulled-keyword->graphql-keyword k)
-                 (keyword?->string v)]))
-         (into {}))))
+               (d/pull db ["*" {:com.apple.product/generation ["*"]}] [:com.apple.product/serial-number serial-number]))
+         (pulled-result->graphql-result))))
 
 (defn query-inventory [db {search-terms :search_terms}]
   (->> (d/q (if search-terms
-              '[:find (pull ?e ["*"])
+              '[:find [(pull ?e ["*" {:com.apple.product/generation ["*"]}]) ...]
                 :in $ [?search-terms ...]
                 :where
-                (or [?e :inventory-item/serial-number ?v]
+                (or [?e :com.apple.product/serial-number ?v]
                     [?e :inventory-item/model-name ?v])
                 [(str "(?i)" ?search-terms) ?pattern-str]
                 [(re-pattern ?pattern-str) ?pattern]
                 [(re-find ?pattern ?v)]]
-              '[:find (pull ?e ["*"])
+              '[:find [(pull ?e ["*" {:com.apple.product/generation ["*"]}]) ...]
                 :where
-                (or [?e :inventory-item/serial-number]
+                (or [?e :com.apple.product/serial-number]
                     [?e :inventory-item/name]
                     [?e :inventory-item/brand]
                     [?e :inventory-item/image-url])])
             db
             search-terms)
-       (map first)
        (map pulled-result->graphql-result)))
 
 (defn get-inventory-of-person
   [db {person-db-id :person-db-id}]
-  (->> (d/q '[:find (pull ?e ["*"])
+  (->> (d/q '[:find [(pull ?e ["*" {:com.apple.product/generation ["*"]}]) ...]
               :in $ ?person-eid
               :where [?e :inventory-item/user ?person-eid]]
             db
             person-db-id)
-       (map first)
        (map pulled-result->graphql-result)
        (map (fn [result] (assoc result :class "laptop")))))
+
+(defn get-collection-items
+  [db {:keys [collection-id]}]
+  (->> (d/q '[:find [(pull ?e ["*"]) ...]
+              :in $ ?collection-eid
+              :where [?collection-eid :collection/members ?e]]
+            db
+            collection-id)
+       (map pulled-result->graphql-result)))
+
 
 (defn- query-result->reallocation
   [[inventory-item new-user instant]]
@@ -183,6 +185,7 @@
                   :new_user       new-user
                   :instant        (time/unparse (time/formatters :date-time-no-ms) (from-date instant))}
                  :Reallocation))
+
 
 (defn get-inventory-history-of-item
   [db {id :inventory-item-db-id}]
@@ -194,7 +197,6 @@
             (d/history db)
             id)
        (map query-result->reallocation)))
-
 
 (defn get-inventory-history-of-person
   [db {id :person-db-id}]
@@ -213,10 +215,7 @@
   (cond
     group-eid
     (->> (d/pull db ["*"] group-eid)
-         (map (fn [[k v]]
-                [(pulled-keyword->graphql-keyword k)
-                 (keyword?->string v)]))
-         (into {}))
+         (pulled-result->graphql-result))
 
     group-name
     (->> (d/q '[:find ?e
@@ -247,8 +246,9 @@
                    (d/transact conn [(merge (cond inventory-item-id
                                                   {:db/id inventory-item-id}
                                                   inventory-item-serial-number
-                                                  {:inventory-item/serial-number inventory-item-serial-number})
+                                                  {:com.apple.product/serial-number inventory-item-serial-number})
                                             {:inventory-item/user new-user-id})]))}))
+
 
 
 
