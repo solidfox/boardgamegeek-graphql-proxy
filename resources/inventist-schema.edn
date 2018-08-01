@@ -7,134 +7,139 @@
                  :CollectionItem       {:members [:Person
                                                   :Computer]}}
 
- :objects       {:Company            {:description "A company that may publish a Board Game."
-                                      :implements  [:Entity]
-                                      :fields      {:id          {:type (non-null ID)}
-                                                    :name        {:type String}
-                                                    :description {:type String}}}
+ :objects       {:Company               {:description "A company that may publish a Board Game."
+                                         :implements  [:Entity]
+                                         :fields      {:id          {:type (non-null ID)}
+                                                       :name        {:type String}
+                                                       :description {:type String}}}
 
-                 :Person             {:description "Person who may have inventory."
-                                      :implements  [:Entity]
-                                      :fields      {:id         {:type (non-null ID)}
-                                                    :occupation {:type        String
-                                                                 :description "E.g. staff or student."}
-                                                    :groups     {:type    (list :Group)
-                                                                 :resolve :resolve-groups}
-                                                    :photo_url  {:type String}
-                                                    :first_name {:type String}
-                                                    :last_name  {:type String}
-                                                    :gender     {:type String}
-                                                    :email      {:type (list String)}
-                                                    :username   {:type String}
-                                                    :phone      {:type String}
-                                                    :address    {:type String}
-                                                    :inventory  {:type    (list :Computer)
-                                                                 :resolve :resolve-computers}
-                                                    :history    {:type    (list :PersonHistoryItem)
-                                                                 :resolve :resolve-person-history}}}
+                 :Person                {:description "Person who may have inventory."
+                                         :implements  [:Entity]
+                                         :fields      {:id         {:type (non-null ID)}
+                                                       :occupation {:type        String
+                                                                    :description "E.g. staff or student."}
+                                                       :groups     {:type    (list :Group)
+                                                                    :resolve :resolve-groups}
+                                                       :photo_url  {:type String}
+                                                       :first_name {:type String}
+                                                       :last_name  {:type String}
+                                                       :gender     {:type String}
+                                                       :email      {:type (list String)}
+                                                       :username   {:type String}
+                                                       :phone      {:type String}
+                                                       :address    {:type String}
+                                                       :inventory  {:type    (list :Computer)
+                                                                    :resolve :resolve-computers}
+                                                       :history    {:type    (list :PersonHistoryItem)
+                                                                    :resolve :resolve-person-history}}}
 
-                 :Group              {:description "A group of persons."
-                                      :implements  [:Entity]
-                                      :fields      {:id           {:type (non-null ID)}
-                                                    :name         {:type String}
-                                                    :description  {:type String}
-                                                    :school_class {:type Boolean}
-                                                    :active       {:type Boolean}}}
+                 :Group                 {:description "A group of persons."
+                                         :implements  [:Entity]
+                                         :fields      {:id           {:type (non-null ID)}
+                                                       :name         {:type String}
+                                                       :description  {:type String}
+                                                       :school_class {:type Boolean}
+                                                       :active       {:type Boolean}}}
 
-                 :Collection         {:description "A collection of persons and/or items."
-                                      :implements  [:Entity]
-                                      :fields      {:id         {:type (non-null ID)}
-                                                    :name       {:type        String
+                 :Collection            {:description "A collection of persons and/or items."
+                                         :implements  [:Entity]
+                                         :fields      {:id      {:type (non-null ID)}
+                                                       :name    {:type        String
                                                                  :description "The human-readable name of the collection. Not required to be unique."}
-                                                    :members    {:type    (list :CollectionItem)
+                                                       :members {:type    (list :CollectionItem)
                                                                  :resolve :resolve-collection-items}}}
 
-                 :Computer           {:description "Details about a computer."
-                                      :fields      {:id               {:type (non-null ID)}
-                                                    :class            {:type String
-                                                                       :description
-                                                                             "E. g. laptop / smartphone / tablet etc..."}
-                                                    :name             {:type String}
-                                                    :release_date     {:type Int}
-                                                    :brand            {:type String}
-                                                    :model_name       {:type String}
-                                                    :model_identifier {:type String}
-                                                    :color            {:type String}
-                                                    :serial_number    {:type String}
-                                                    :user             {:type    :Person
-                                                                       :resolve :resolve-person}
-                                                    :image_url        {:type String}
-                                                    :history          {:type    (list :InventoryHistoryItem)
-                                                                       :resolve :resolve-inventory-history}
-                                                    :purchase_details {:type :PurchaseDetails}}}
+                 :Computer              {:description "Details about a computer."
+                                         :fields      {:id               {:type (non-null ID)}
+                                                       :class            {:type String
+                                                                          :description
+                                                                                "E. g. laptop / smartphone / tablet etc..."}
+                                                       :name             {:type String}
+                                                       :release_date     {:type Int}
+                                                       :brand            {:type String}
+                                                       :model_name       {:type String}
+                                                       :model_identifier {:type String}
+                                                       :color            {:type String}
+                                                       :serial_number    {:type String}
+                                                       :user             {:type    :Person
+                                                                          :resolve :resolve-person}
+                                                       :image_url        {:type String}
+                                                       :history          {:type    (list :InventoryHistoryItem)
+                                                                          :resolve :resolve-inventory-history}
+                                                       :purchase_details {:type :PurchaseDetails}}}
 
-                 :Reallocation       {:description "Describes a reallocation of an inventory item."
-                                      :fields      {:instant        {:type String}
-                                                    :inventory_item {:type    :Computer
-                                                                     :resolve :resolve-computer}
-                                                    :new_user       {:type    :Person
-                                                                     :resolve :resolve-new-user}
-                                                    :old_user       {:type    :Person
-                                                                     :resolve :resolve-old-user}
-                                                    :comment        {:type String}}}
+                 :Reallocation          {:description "Describes a reallocation of an inventory item."
+                                         :fields      {:instant        {:type String}
+                                                       :inventory_item {:type    :Computer
+                                                                        :resolve :resolve-computer}
+                                                       :new_user       {:type    :Person
+                                                                        :resolve :resolve-new-user}
+                                                       :old_user       {:type    :Person
+                                                                        :resolve :resolve-old-user}
+                                                       :comment        {:type String}}}
 
-                 :PurchaseDetails    {:description "Details about how a computer was acquired."
-                                      :fields      {:purchase_id       {:type (non-null ID)}
-                                                    :documents         {:type    (list :Document)
-                                                                        :resolve :resolve-documents}
-                                                    :supplier          {:type :Company}
-                                                    :delivery_date     {:type Int}
-                                                    :insurance_expires {:type Int}
-                                                    :warranty_expires  {:type Int}}}
+                 :PurchaseDetails       {:description "Details about how a computer was acquired."
+                                         :fields      {:purchase_id       {:type (non-null ID)}
+                                                       :documents         {:type    (list :Document)
+                                                                           :resolve :resolve-documents}
+                                                       :supplier          {:type :Company}
+                                                       :delivery_date     {:type Int}
+                                                       :insurance_expires {:type Int}
+                                                       :warranty_expires  {:type Int}}}
 
-                 :InventoryItemEvent {:description "Something that happened to an inventory item. Such as being reassigned, repaired or decommissioned."
-                                      :fields      {:person    {:type :Person}
-                                                    :date_time {:type Int}
-                                                    :comment   {:type String}}}
+                 :InventoryItemEvent    {:description "Something that happened to an inventory item. Such as being reassigned, repaired or decommissioned."
+                                         :fields      {:person    {:type :Person}
+                                                       :date_time {:type Int}
+                                                       :comment   {:type String}}}
 
-                 :Document           {:description "A file."
-                                      :fields      {:id        {:type ID}
-                                                    :file_type {:type String}
-                                                    :name      {:type String}
-                                                    :comment   {:type String}
-                                                    :url       {:type String}}}
-                 :IssueReport        {:description "A report detailing an issue with an inventory item."
-                                      :fields      {:id               {:type ID}
-                                                    :inventory_item   {:type :Computer}
-                                                    :reporting_person {:type :Person}
-                                                    :category         {:description "The category of the issue. E.g. Battery problems, Physical damage, Water damage etc."
-                                                                       :type        String}
-                                                    :description      {:decription "A detailed description of the issue."
-                                                                       :type       String}
-                                                    :cause            {:description "The suspected cause of the issue. E.g. Unknown, Water exposure, Accident, Factory fault"
-                                                                       :type        String}
-                                                    :photos           {:type (list :File)}}}
-                 :File               {:fields {:name        {:type String}
-                                               :description {:type String}
-                                               :file_type   {:type String}
-                                               :url         {:type String}}}}
+                 :Document              {:description "A file."
+                                         :fields      {:id        {:type ID}
+                                                       :file_type {:type String}
+                                                       :name      {:type String}
+                                                       :comment   {:type String}
+                                                       :url       {:type String}}}
+                 :IssueReport           {:description "A report detailing an issue with an inventory item."
+                                         :fields      {:id               {:type ID}
+                                                       :inventory_item   {:type :Computer}
+                                                       :reporting_person {:type :Person}
+                                                       :category         {:description "The category of the issue. E.g. Battery problems, Physical damage, Water damage etc."
+                                                                          :type        String}
+                                                       :description      {:decription "A detailed description of the issue."
+                                                                          :type       String}
+                                                       :cause            {:description "The suspected cause of the issue. E.g. Unknown, Water exposure, Accident, Factory fault"
+                                                                          :type        String}
+                                                       :photos           {:type (list :File)}}}
+                 :File                  {:fields {:name        {:type String}
+                                                  :description {:type String}
+                                                  :file_type   {:type String}
+                                                  :url         {:type String}}}
+                 :GenericMutationResult {:fields {:success                 {:type Boolean}
+                                                  :potential-error-message String}}}
 
 
 
- :queries       {:computers {:type        (list :Computer)
-                             :description "Retrieve a filtered list of computers."
-                             :args        {:search_terms {:type (list String)}}
-                             :resolve     :query-computers}
-                 :computer  {:type        :Computer
-                             :description "Retrieve a single computer."
-                             :args        {:id            {:type ID}
-                                           :serial_number {:type String}}
-                             :resolve     :resolve-computer}
-                 :people    {:type        (list :Person)
-                             :description "Retrieve a filtered list of people."
-                             :args        {:groups {:type (list String)}}
-                             :resolve     :query-people}
-                 :person    {:type        :Person
-                             :description "Retrieve a single person."
-                             :args        {:id            {:type ID}
-                                           :email         {:type String}
-                                           :schoolsoft_id {:type String}}
-                             :resolve     :resolve-person}}
+ :queries       {:computers   {:type        (list :Computer)
+                               :description "Retrieve a filtered list of computers."
+                               :args        {:search_terms {:type (list String)}}
+                               :resolve     :query-computers}
+                 :collections {:type        (list :Collection)
+                               :description "Retrieve all collections."
+                               :resolve     :collections}
+                 :computer    {:type        :Computer
+                               :description "Retrieve a single computer."
+                               :args        {:id            {:type ID}
+                                             :serial_number {:type String}}
+                               :resolve     :resolve-computer}
+                 :people      {:type        (list :Person)
+                               :description "Retrieve a filtered list of people."
+                               :args        {:groups {:type (list String)}}
+                               :resolve     :query-people}
+                 :person      {:type        :Person
+                               :description "Retrieve a single person."
+                               :args        {:id            {:type ID}
+                                             :email         {:type String}
+                                             :schoolsoft_id {:type String}}
+                               :resolve     :resolve-person}}
 
  :input-objects {:InputFile {:fields {:name        {:type String}
                                       :description {:type String}
@@ -146,6 +151,26 @@
                                                     :args    {:inventory_item_id            {:type ID}
                                                               :inventory_item_serial_number {:type String}
                                                               :new_user_id                  {:type ID}}}
+                 :add_collection                   {:type    :Collection
+                                                    :resolve :add_collection
+                                                    :args    {:name {:type String}}}
+                 :remove_collection                {:type    :GenericMutationResult
+                                                    :resolve :remove_collection
+                                                    :args    {:collection-id {:type ID}}}
+                 :rename_collection                {:type    :Collection
+                                                    :resolve :rename_collection
+                                                    :args    {:collection-id (:type ID)
+                                                              :new-name      {:type String}}}
+                 :add_items_to_collection          {:type    :GenericMutationResult
+                                                    :resolve :add_items_to_collection
+                                                    :args    {:collection_id {:type ID}
+                                                              :item_ids      {:type        (list ID)
+                                                                              :description "Can be either inventory items or a persons."}}}
+                 :remove_items_from_collection     {:type    :GenericMutationResult
+                                                    :resolve :remove_items_to_collection
+                                                    :args    {:collection_id {:type ID}
+                                                              :item_ids      {:type        (list ID)
+                                                                              :description "Can be either inventory items or a persons."}}}
                  :report_issue_with_inventory_item {:type    :IssueReport
                                                     :resolve :report_issue_with_inventory_item
                                                     :args    {:item_id     {:description "The id of the inventory item that the report is about."

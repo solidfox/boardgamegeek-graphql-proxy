@@ -1,11 +1,10 @@
 (ns inventist.db.core
   (:require [datomic.api :as d]
             [inventist.db.schema :as schema]
-            [ysera.test :refer [is=]]
+            [ysera.test :refer [is= is-not]]
             [clojure.string :as str]
             [clj-time.format :as time]
             [clj-time.coerce :refer [from-date]]
-            [com.walmartlabs.lacinia.schema :refer [tag-with-type]]
             [clojure.pprint :refer [pprint]]
             [inventist.util.core :as util]))
 
@@ -15,8 +14,6 @@
   "datomic:free://localhost:4334/inventist")
 (def in-memory-uri
   "datomic:mem://inventist")
-(def test-uri
-  "datomic:mem://test")
 
 (defn to-long [x]
   (try (Long. x)
@@ -24,15 +21,23 @@
          (println (str "Could not convert " x " to Long: " e))
          nil)))
 
-(defn clear-database! [uri]
-  (d/delete-database uri)
-  (d/create-database uri))
-
-(defn create-fresh-test-database! []
-  (clear-database! test-uri)
-  (let [conn (d/connect test-uri)]
+(defn create-test-database! []
+  (let [uri  (str "datomic:mem://test" (rand-int (Integer/MAX_VALUE)))
+        _    (d/create-database uri)
+        conn (d/connect uri)]
     (d/transact conn schema/entire-schema)
-    conn))
+    (as-> (d/transact conn
+                      [{:db/id             "lisa"
+                        :person/first-name "Lisa"}
+                       {:db/id             "per"
+                        :person/first-name "Per"}
+                       {:db/id               "macbook"
+                        :inventory-item/name "macbook"}
+                       {:db/id               "iphone"
+                        :inventory-item/name "iphone"}]) $
+          (deref $)
+          [conn (:tempids $)])))
+
 
 (defn log-transaction-failures [tx-results]
   (as-> tx-results $
@@ -95,31 +100,27 @@
 
 (defn get-people
   {:test (fn [] (is=
-                  (let [conn (create-fresh-test-database!)]
-                    (d/transact conn
-                                [{:person/schoolsoft-id "test"
-                                  :person/first-name    "Lisa"}
-                                 {:person/schoolsoft-id "test2"
-                                  :person/first-name    "Per"}])
+                  (let [[conn id-map] (create-fresh-test-database!)]
                     (->> (get-people (d/db conn))
                          (map (fn [person] (dissoc person :id)))
                          (into #{})))
-                  #{{:schoolsoft_id "test"
-                     :first_name    "Lisa"}
-                    {:schoolsoft_id "test2"
-                     :first_name    "Per"}}))}
+                  #{{:first_name "Lisa"}
+                    {:first_name "Per"}}))}
   [db & [{groups :groups}]]
   (->> (d/q (if groups
               '[:find [(pull ?e ["*"]) ...]
                 :in $ [?group ...]
                 :where
-                [?e :person/schoolsoft-id]
                 [?e :person/groups ?group-eid]
                 (or [(= ?group ?group-eid)]
                     [?group-eid :group/name ?group])]
               '[:find [(pull ?e ["*"]) ...]
                 :where
-                [?e :person/schoolsoft-id]])
+                [?s :db/valueType]
+                [?s :db/ident ?attr]
+                [(datomic.Util/namespace ?attr) ?namespace]
+                [(= "person" ?namespace)]
+                [?e ?attr]])
             db
             groups)
        (map pulled-result->graphql-result)
@@ -179,14 +180,6 @@
        (map pulled-result->graphql-result)))
 
 
-(defn- query-result->reallocation
-  [[inventory-item new-user instant]]
-  (tag-with-type {:inventory_item inventory-item
-                  :new_user       new-user
-                  :instant        (time/unparse (time/formatters :date-time-no-ms) (from-date instant))}
-                 :Reallocation))
-
-
 (defn get-inventory-history-of-item
   [db {id :inventory-item-db-id}]
   (->> (d/q '[:find ?inventory-item-eid ?person-eid ?instant
@@ -195,8 +188,7 @@
               [?inventory-item-eid :inventory-item/user ?person-eid ?tx true]
               [?tx :db/txInstant ?instant]]
             (d/history db)
-            id)
-       (map query-result->reallocation)))
+            id)))
 
 (defn get-inventory-history-of-person
   [db {id :person-db-id}]
@@ -206,8 +198,7 @@
               [?inventory-item-eid :inventory-item/user ?person-eid ?tx true]
               [?tx :db/txInstant ?instant]]
             (d/history db)
-            id)
-       (map query-result->reallocation)))
+            id)))
 
 (defn get-group
   [db {group-eid  :group-db-id
@@ -248,6 +239,61 @@
                                                   inventory-item-serial-number
                                                   {:com.apple.product/serial-number inventory-item-serial-number})
                                             {:inventory-item/user new-user-id})]))}))
+
+(defn add-inventory-item-issue-report
+  {:test (fn [] (let [[conn id-map] (create-test-database!)]
+                  (is= (dissoc (add-inventory-item-issue-report
+                                 conn
+                                 {:item-id     (get id-map "macbook")
+                                  :category    :physical-damage
+                                  :description "test"})
+                               :db/id)
+                       {:item.issue/category    :physical-damage
+                        :item.issue/description "test"})))}
+  [conn {item_id     :item_id
+         category    :category
+         description :description
+         cause       :cause}]
+  (let [issue-id      "temp-issue-id"
+        tx-result     (deref
+                        (d/transact conn [(merge {:db/id               issue-id
+                                                  :item.issue/category category}
+                                                 (when (not-empty description)
+                                                   {:item.issue/description description})
+                                                 (when (not-empty cause)
+                                                   {:item.issue/cause cause}))
+                                          {:db/id                 item_id
+                                           :inventory-item/issues issue-id}]))
+        new-issue-eid (get-in tx-result [:tempids issue-id])]
+    (d/pull (:db-after tx-result) '[*] new-issue-eid)))
+
+(defn add-collection
+  [conn {name :name}]
+  (let [collection-eid "new-collection-tempid"
+        tx-result      (deref
+                         (d/transact conn [{:db/id           collection-eid
+                                            :collection/name name}]))]
+    (d/pull (:db-after tx-result) '[*] (get-in tx-result [:tempids collection-eid]))))
+
+(defn remove-collection
+  {:test (fn [] (let [[conn id-map] (create-test-database!)]
+                  (is-not (remove-collection
+                            conn
+                            {:collection-id 0}))))}
+  [conn {collection-id :collection-id}]
+  (try (deref
+         (d/transact conn [[:db.fn/retractEntity collection-id]]))
+       (catch Exception e
+         (do (println "Could not remove collection" collection-id ":\n" e)
+             false))))
+
+(defn get-collections [db]
+  (d/q '[:find [(pull [*] ?collection-eid) ...]
+         :in $
+         :where
+         (or [?collection-eid :collection/members]
+             [?collection-eid :collection/name])]
+       db))
 
 
 

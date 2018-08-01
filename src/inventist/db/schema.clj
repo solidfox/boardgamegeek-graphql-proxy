@@ -64,6 +64,11 @@
     :db/valueType   :db.type/string
     :db/cardinality :db.cardinality/one}
 
+   {:db/ident       :inventory-item/issues
+    :db/isComponent true
+    :db/valueType   :db.type/ref
+    :db/cardinality :db.cardinality/many}
+
 
    ;; people-group-schema
    {:db/ident       :group/schoolsoft-id

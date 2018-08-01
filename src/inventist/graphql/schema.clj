@@ -2,13 +2,14 @@
   (:require
     [clojure.java.io :as io]
     [clojure.edn :as edn]
-    [com.walmartlabs.lacinia.schema :as schema]
+    [com.walmartlabs.lacinia.schema :as schema :refer [tag-with-type]]
     [com.walmartlabs.lacinia.util :refer [attach-resolvers]]
     [inventist.db.core :as db]
     [datomic.api :as d]
     [clojure.string :as str]
     [ysera.test :refer [is=]]
-    [inventist.util.core :as util]))
+    [inventist.util.core :as util]
+    [clj-time.format :as time]))
 
 (comment
   "This file reads the graph-ql schema from resources/inventist-schema.edn and "
@@ -54,7 +55,6 @@
   [context _args parent]
   (resolve-person context {:id (:old_user parent)} nil))
 
-
 (defn ^:private query-people
   [{db-connection :db-connection
     base-url      :base-url} args _value]
@@ -89,16 +89,6 @@
                               :serial-number (:serial_number args)})
       db-computer->graphql-computer))
 
-(defn ^:private resolve-inventory-history
-  [context args parent]
-  (db/get-inventory-history-of-item (d/db (:db-connection context))
-                                    {:inventory-item-db-id (:id parent)}))
-
-(defn ^:private resolve-person-history
-  [context args parent]
-  (db/get-inventory-history-of-person (d/db (:db-connection context))
-                                      {:person-db-id (:id parent)}))
-
 (defn ^:private set-user-of-inventory-item
   [context {inventory-item-id            :inventory_item_id
             inventory-item-serial-number :inventory_item_serial_number
@@ -122,8 +112,7 @@
    {item_id     :item_id
     category    :category
     description :description
-    cause       :cause
-    photos      :photos}
+    cause       :cause}
    _parent]
   (let [conn           (:db-connection context)
         inventory-item (db/get-inventory-item (d/db conn)
@@ -134,13 +123,31 @@
      :reporting_person nil
      :category         nil
      :description      nil
-     :cause            nil
-     :photos           nil}))
+     :cause            nil}))
+
+(defn- query-result->reallocation
+  [[inventory-item new-user instant]]
+  (tag-with-type {:inventory_item inventory-item
+                  :new_user       new-user
+                  :instant        (time/unparse (time/formatters :date-time-no-ms) (from-date instant))}
+                 :Reallocation))
+
+(defn ^:private resolve-inventory-history
+  [context args parent]
+  (-> (db/get-inventory-history-of-item (d/db (:db-connection context))
+                                        {:inventory-item-db-id (:id parent)})
+      (map query-result->reallocation)))
 
 (defn ^:private resolve-person-history
   [context args parent]
-  (db/get-inventory-history-of-person (d/db (:db-connection context))
-                                      {:person-db-id (:id parent)}))
+  (-> (db/get-inventory-history-of-person (d/db (:db-connection context))
+                                          {:person-db-id (:id parent)})
+      (map query-result->reallocation)))
+
+(defn ^:private get-collections
+  [context args _parent]
+  (-> (db/get-collections (d/db (:db-connection context)))
+      (db/pulled-result->graphql-result)))
 
 (defn inventist-schema
   []
@@ -148,6 +155,7 @@
       slurp
       edn/read-string
       (attach-resolvers {:resolve-documents                identity ;TODO
+                         :collections                      get-collections
                          :resolve-groups                   resolve-groups
                          :resolve-person                   resolve-person
                          :query-people                     query-people
