@@ -206,6 +206,6 @@
     :db/cardinality :db.cardinality/one}
 
    {:db/ident       :collection/members
-    :db/valueType   :db.type/string
-    :db/cardinality :db.cardinality/one
+    :db/valueType   :db.type/ref
+    :db/cardinality :db.cardinality/many
     :db/doc         "A detailed description of the issue."}])

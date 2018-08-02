@@ -1,7 +1,7 @@
 (ns inventist.db.core
   (:require [datomic.api :as d]
             [inventist.db.schema :as schema]
-            [ysera.test :refer [is= is-not]]
+            [ysera.test :refer [is= is-not is]]
             [clojure.string :as str]
             [clj-time.format :as time]
             [clj-time.coerce :refer [from-date]]
@@ -34,7 +34,12 @@
                        {:db/id               "macbook"
                         :inventory-item/name "macbook"}
                        {:db/id               "iphone"
-                        :inventory-item/name "iphone"}]) $
+                        :inventory-item/name "iphone"}
+                       {:db/id               "ipad"
+                        :inventory-item/name "ipad"}
+                       {:db/id              "collection"
+                        :collection/name    "collection"
+                        :collection/members [{:db/id "macbook"}]}]) $
           (deref $)
           [conn (:tempids $)])))
 
@@ -126,23 +131,20 @@
        (map pulled-result->graphql-result)
        (map correct-person-photo-url)))
 
-(defn query-pull-entire-inventory-item [entity-symbol]
-  `(~(symbol "pull") ~entity-symbol ["*" {:com.apple.product/generation ["*"]}]))
-
 (defn get-inventory-item
   [db {serial-number :serial-number
        id            :id}]
   {:pre [(or serial-number id)]}
   (let [id (to-long id)]
     (->> (cond id
-               (d/pull db ["*" {:com.apple.product/generation ["*"]}] id)
+               (d/pull db '[* {:com.apple.product/generation [*]}] id)
                serial-number
-               (d/pull db ["*" {:com.apple.product/generation ["*"]}] [:com.apple.product/serial-number serial-number]))
+               (d/pull db '[* {:com.apple.product/generation [*]}] [:com.apple.product/serial-number serial-number]))
          (pulled-result->graphql-result))))
 
 (defn query-inventory [db {search-terms :search_terms}]
   (->> (d/q (if search-terms
-              '[:find [(pull ?e ["*" {:com.apple.product/generation ["*"]}]) ...]
+              '[:find [(pull ?e '[* {:com.apple.product/generation [*]}]) ...]
                 :in $ [?search-terms ...]
                 :where
                 (or [?e :com.apple.product/serial-number ?v]
@@ -150,7 +152,7 @@
                 [(str "(?i)" ?search-terms) ?pattern-str]
                 [(re-pattern ?pattern-str) ?pattern]
                 [(re-find ?pattern ?v)]]
-              '[:find [(pull ?e ["*" {:com.apple.product/generation ["*"]}]) ...]
+              '[:find [(pull ?e '[* {:com.apple.product/generation [*]}]) ...]
                 :where
                 (or [?e :com.apple.product/serial-number]
                     [?e :inventory-item/name]
@@ -162,7 +164,7 @@
 
 (defn get-inventory-of-person
   [db {person-db-id :person-db-id}]
-  (->> (d/q '[:find [(pull ?e ["*" {:com.apple.product/generation ["*"]}]) ...]
+  (->> (d/q '[:find [(pull ?e [* {:com.apple.product/generation [*]}]) ...]
               :in $ ?person-eid
               :where [?e :inventory-item/user ?person-eid]]
             db
@@ -172,12 +174,11 @@
 
 (defn get-collection-items
   [db {:keys [collection-id]}]
-  (->> (d/q '[:find [(pull ?e ["*"]) ...]
+  (->> (d/q '[:find [(pull ?e [*]) ...]
               :in $ ?collection-eid
               :where [?collection-eid :collection/members ?e]]
             db
-            collection-id)
-       (map pulled-result->graphql-result)))
+            collection-id)))
 
 
 (defn get-inventory-history-of-item
@@ -205,7 +206,7 @@
        group-name :group-name}]
   (cond
     group-eid
-    (->> (d/pull db ["*"] group-eid)
+    (->> (d/pull db '[*] group-eid)
          (pulled-result->graphql-result))
 
     group-name
@@ -220,7 +221,8 @@
 
 (defn instant-of-transact-result
   [transact-result]
-  (->> @transact-result
+  (->> transact-result
+       (deref)
        (:tx-data)
        (filter (fn [datom]
                  (inst? (:v datom))))
@@ -267,7 +269,31 @@
         new-issue-eid (get-in tx-result [:tempids issue-id])]
     (d/pull (:db-after tx-result) '[*] new-issue-eid)))
 
+(defn get-collections
+  {:test (fn [] (let [[conn id-map] (create-test-database!)
+                      test-collection-id (get id-map "collection")]
+                  (is= (->> (get-collections (d/db conn))
+                            (map (fn [col] (select-keys col [:db/id :collection/name]))))
+                       [{:db/id           test-collection-id
+                         :collection/name "collection"}])))}
+  [db]
+  (d/q '[:find [(pull ?collection-eid [*]) ...]
+         :where
+         (or [?collection-eid :collection/members]
+             [?collection-eid :collection/name])]
+       db))
+
 (defn add-collection
+  {:test (fn [] (let [[conn id-map] (create-test-database!)
+                      test-collection-id  (get id-map "collection")
+                      added-collection-id (:db/id (add-collection conn {:name "added-collection"}))]
+                  (is= (->> (get-collections (d/db conn))
+                            (map (fn [collection] (select-keys collection [:db/id :collection/name])))
+                            (into #{}))
+                       #{{:db/id           test-collection-id
+                          :collection/name "collection"}
+                         {:db/id           added-collection-id
+                          :collection/name "added-collection"}})))}
   [conn {name :name}]
   (let [collection-eid "new-collection-tempid"
         tx-result      (deref
@@ -276,24 +302,57 @@
     (d/pull (:db-after tx-result) '[*] (get-in tx-result [:tempids collection-eid]))))
 
 (defn remove-collection
-  {:test (fn [] (let [[conn id-map] (create-test-database!)]
+  {:test (fn [] (let [[conn id-map] (create-test-database!)
+                      test-collection-id (:db/id (add-collection conn {:name "test-collection"}))]
                   (is-not (remove-collection
                             conn
-                            {:collection-id 0}))))}
+                            {:collection-id 0}))
+                  (is (remove-collection
+                        conn
+                        {:collection-id test-collection-id}))))}
   [conn {collection-id :collection-id}]
   (try (deref
          (d/transact conn [[:db.fn/retractEntity collection-id]]))
        (catch Exception e
-         (do (println "Could not remove collection" collection-id ":\n" e)
-             false))))
+         false)))
 
-(defn get-collections [db]
-  (d/q '[:find [(pull [*] ?collection-eid) ...]
-         :in $
-         :where
-         (or [?collection-eid :collection/members]
-             [?collection-eid :collection/name])]
-       db))
+
+(defn add-entities-to-collection
+  {:test (fn [] (let [[conn id-map] (create-test-database!)
+                      test-collection-id (get id-map "collection")
+                      tx-result          (add-entities-to-collection conn {:collection-id test-collection-id
+                                                                           :entity-ids    [(get id-map "ipad")
+                                                                                           (get id-map "iphone")]})]
+                  (is= (->> (get-collection-items (d/db conn)
+                                                  {:collection-id test-collection-id})
+                            (map (fn [res] (select-keys res [:inventory-item/name])))
+                            (into #{}))
+                       #{{:inventory-item/name "macbook"}
+                         {:inventory-item/name "iphone"}
+                         {:inventory-item/name "ipad"}})))}
+  [conn {:keys [collection-id
+                entity-ids]}]
+  (d/transact conn [{:db/id              collection-id
+                     :collection/members entity-ids}]))
+
+(defn remove-entities-from-collection
+  {:test (fn [] (let [[conn id-map] (create-test-database!)
+                      test-collection-id (get id-map "collection")
+                      _                  (add-entities-to-collection conn {:collection-id test-collection-id
+                                                                           :entity-ids    [(get id-map "iphone")
+                                                                                           (get id-map "ipad")]})
+                      tx-result          (remove-entities-from-collection conn {:collection-id test-collection-id
+                                                                                :entity-ids    [(get id-map "macbook")
+                                                                                                (get id-map "iphone")]})]
+                  (is= (->> (get-collection-items (d/db conn)
+                                                  {:collection-id test-collection-id})
+                            (map (fn [res] (select-keys res [:inventory-item/name]))))
+                       [{:inventory-item/name "ipad"}])))}
+  [conn {:keys [collection-id
+                entity-ids]}]
+  (d/transact conn (for [eid entity-ids]
+                     [:db/retract collection-id
+                      :collection/members eid])))
 
 
 
