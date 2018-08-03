@@ -113,8 +113,8 @@
                                                   :description {:type String}
                                                   :file_type   {:type String}
                                                   :url         {:type String}}}
-                 :GenericMutationResult {:fields {:success                 {:type Boolean}
-                                                  :potential-error-message String}}}
+                 :GenericMutationResult {:fields {:success       {:type Boolean}
+                                                  :error_message {:type String}}}}
 
 
 
@@ -152,25 +152,25 @@
                                                               :inventory_item_serial_number {:type String}
                                                               :new_user_id                  {:type ID}}}
                  :add_collection                   {:type    :Collection
-                                                    :resolve :add_collection
+                                                    :resolve :add-collection
                                                     :args    {:name {:type String}}}
                  :remove_collection                {:type    :GenericMutationResult
-                                                    :resolve :remove_collection
-                                                    :args    {:collection-id {:type ID}}}
-                 :rename_collection                {:type    :Collection
-                                                    :resolve :rename_collection
-                                                    :args    {:collection-id (:type ID)
-                                                              :new-name      {:type String}}}
-                 :add_items_to_collection          {:type    :GenericMutationResult
-                                                    :resolve :add_items_to_collection
+                                                    :resolve :remove-collection
+                                                    :args    {:collection_id {:type ID}}}
+                 :edit_collection_metadata         {:type    :Collection
+                                                    :resolve :edit-collection-metadata
                                                     :args    {:collection_id {:type ID}
-                                                              :item_ids      {:type        (list ID)
-                                                                              :description "Can be either inventory items or a persons."}}}
-                 :remove_items_from_collection     {:type    :GenericMutationResult
-                                                    :resolve :remove_items_to_collection
+                                                              :new_name      {:type String}}}
+                 :add_entities_to_collection       {:type    :GenericMutationResult
+                                                    :resolve :add-entities-to-collection
                                                     :args    {:collection_id {:type ID}
-                                                              :item_ids      {:type        (list ID)
-                                                                              :description "Can be either inventory items or a persons."}}}
+                                                              :entity_ids      {:type        (list ID)
+                                                                                :description "Can be either inventory items or a persons."}}}
+                 :remove_entities_from_collection  {:type    :GenericMutationResult
+                                                    :resolve :remove-entities-from-collection
+                                                    :args    {:collection_id {:type ID}
+                                                              :entity_ids      {:type        (list ID)
+                                                                                :description "Can be either inventory items or a persons."}}}
                  :report_issue_with_inventory_item {:type    :IssueReport
                                                     :resolve :report_issue_with_inventory_item
                                                     :args    {:item_id     {:description "The id of the inventory item that the report is about."

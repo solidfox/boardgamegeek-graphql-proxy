@@ -1,7 +1,8 @@
 (ns inventist.schoolsoft.client.core
   (:require [clojure.java.io :as io]
             [ysera.test :refer [is-not]]
-            [inventist.util.core :as util]))
+            [inventist.util.core :as util]
+            [clojure.string :as str]))
 
 (comment "Here people data is converted to Datomic transactions from tsv files that have been redacted from"
          "this git-repo for natural reasons.")
@@ -36,7 +37,7 @@
                                   :person/occupation    :student
                                   :person/groups        [{:group/schoolsoft-id (:classid student)}]
                                   :person/active        (= "1" (:active student))
-                                  :person/photo-url     (:picture student)
+                                  :person/photo-url     (str/replace (:picture student) #"^student" "")
                                   :person/phone         (:mobile student)
                                   :person/address       (:address1 student)}
                                  (let [username (:username student)]

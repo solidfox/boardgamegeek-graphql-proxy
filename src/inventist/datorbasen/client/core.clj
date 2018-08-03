@@ -133,7 +133,7 @@
   [{:person/first-name "Godtycklig"
     :person/last-name  "Uggla"
     :person/occupation :student
-    :person/groups     [(:db/id (db/get-group db {:group-name "4-Ugglor"}))]
+    :person/groups     [(:db/id (first (db/query-groups db {:group-name "4-Ugglor"})))]
     :person/active     false}])
 
 (defn create-transactions-for-all-registrations
