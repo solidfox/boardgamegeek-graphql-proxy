@@ -42,7 +42,8 @@
   (->> graphql-args
        (map (fn [[k v]] [(-> k
                              (str) (subs 1)
-                             (str/replace #"_" "-"))
+                             (str/replace #"_" "-")
+                             keyword)
                          v]))
        (into {})))
 
