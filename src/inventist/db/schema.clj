@@ -27,6 +27,10 @@
 
    {:db/ident       :com.apple.product.generation/model-identifier
     :db/valueType   :db.type/string
+    :db/cardinality :db.cardinality/one}
+
+   {:db/ident       :com.apple.product.generation/model-serialnumber-ending
+    :db/valueType   :db.type/string
     :db/cardinality :db.cardinality/one
     :db/unique      :db.unique/identity}
 

@@ -110,15 +110,20 @@
     registration))
 
 (defn datorbasen-registration->inventory-item [registration db]
-  (let [registration            (clean-up-registration-to-user-it registration)
-        model-identifier        (str/trim (:modell registration))
-        model-name              (str/trim (:modellnamn registration))
-        model-generation-tempid model-identifier]
+  (let [registration              (clean-up-registration-to-user-it registration)
+        model-serialnumber-ending (as-> (:serienummer registration) $
+                                        (str/trim $)
+                                        (subs $ (- (count $) 4) (count $)))
+        model-identifier          (str/trim (:modell registration))
+        model-name                (str/trim (:modellnamn registration))
+        model-generation-tempid   model-identifier]
     (remove nil?
             [[:db/add "datomic.tx" :db/txInstant (read-instant-date (:timestamp registration))]
              ;[:db/retract [:inventory-item/serial-number (:serienummer registration)] :inventory-item/users _]
-             (merge {:db/id                                         model-generation-tempid
-                     :com.apple.product.generation/model-identifier model-identifier}
+             (merge {:db/id                                                  model-generation-tempid
+                     :com.apple.product.generation/model-serialnumber-ending model-serialnumber-ending}
+                    (when (not-empty model-identifier)
+                      {:com.apple.product.generation/model-identifier model-identifier})
                     (when (not-empty model-name)
                       {:com.apple.product.generation/model-name model-name}))
              (merge {:inventory-item/brand            "Apple"
@@ -144,7 +149,8 @@
                       (fn [heading]
                         (-> heading
                             (string/lower-case)
-                            (string/replace #"\s+" "-"))))
+                            (string/replace #"\s+" "-")
+                            (string/replace #"[^\w]*time" "timestamp"))))
        (sort-by (fn [registration] (:timestamp registration)))
        (map (fn [registration] (datorbasen-registration->inventory-item registration db)))))
 
