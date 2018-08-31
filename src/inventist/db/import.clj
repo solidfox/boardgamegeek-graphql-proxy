@@ -1,6 +1,6 @@
 (ns inventist.db.import
   (:require [datomic.api :as d]
-            [inventist.db.core :refer [clear-database! log-transaction-failures]]
+            [inventist.db.core :refer [in-memory-uri clear-database! log-transaction-failures]]
             [inventist.db.schema :as schema]
             [inventist.schoolsoft.client.core :as schoolsoft]
             [inventist.datorbasen.client.core :as datorbasen]))
